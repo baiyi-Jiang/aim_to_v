@@ -1,0 +1,508 @@
+#include "read_thread.h"
+#include "user_info.h"
+#include "group_info.h"
+#include <iterator>
+#include <memory>
+
+uint32_t global_user_guid = 0;
+uint32_t global_group_guid = 0;
+uint32_t global_msg_num = 0;
+
+bool NetInfo::parse_msg(const uint8_t *data, uint32_t len, int32_t fd, const recv_msg &msg)
+{
+    if (msg.type > recv_msg_type::RECV_MST_TYPE_MAX)
+    {
+        char log_buf[256] = {0};
+        sprintf(log_buf, "Error, msg type error!");
+        write_log(LOG_ERROR, (uint8_t *)log_buf);
+        return false;
+    }
+    switch (static_cast<recv_msg_type::msg_type>(msg.type))
+    {
+    case recv_msg_type::ACOUNT_ADD:
+    {
+        on_acount_add(data + 10, msg.data_length, fd);
+        break;
+    }
+    case recv_msg_type::ACOUNT_MODIFY:
+    {
+        break;
+    }
+    case recv_msg_type::ACOUNT_DELETE:
+    {
+        break;
+    }
+    case recv_msg_type::GROUP_ADD:
+    {
+        break;
+    }
+    case recv_msg_type::GROUP_MODIFY:
+    {
+        break;
+    }
+    case recv_msg_type::GROUP_DELETE:
+    {
+        break;
+    }
+    case recv_msg_type::USER_INFO_REQ:
+    {
+        break;
+    }
+    case recv_msg_type::MSG_SEND:
+    {
+        on_msg_send(msg.guid, data + 10, len, fd);
+        break;
+    }
+    case recv_msg_type::MSG_LIST_REQ:
+    {
+        break;
+    }
+    default:
+    {
+        break;
+    }
+    }
+}
+
+void NetInfo::on_acount_add(const uint8_t *data, uint32_t len, int32_t fd)
+{
+    UserInfo user;
+    user.from_data(global_user_guid, data, len);
+    users.push_back(user);
+    users_map[user.get_user_guid()] = std::prev(users.end());
+    user_conn_map[user.get_user_guid()] = fd;
+    conn_user_map[fd] = user.get_user_guid();
+}
+
+void NetInfo::on_acount_modify()
+{
+    //
+}
+
+void NetInfo::on_acount_delete()
+{
+    //
+}
+
+void NetInfo::on_group_add()
+{
+    //
+}
+
+void NetInfo::on_group_modify()
+{
+    //
+}
+
+void NetInfo::on_group_delete()
+{
+    //
+}
+
+void NetInfo::on_user_info_req()
+{
+    //
+}
+
+void NetInfo::on_msg_send(uint32_t guid, const uint8_t *data, uint32_t len, int32_t fd)
+{
+    std::shared_ptr<msg_info> msg = std::make_shared<msg_info>();
+    if (!msg->from_data(data, len))
+        return;
+    msg_list.push_back(msg);
+    auto conn_itor = conn_user_map.find(fd);
+    if (conn_itor == conn_user_map.end() || conn_itor->second != guid)
+    {
+        user_conn_map[guid] = fd;
+        conn_user_map[fd] = guid;
+    }
+}
+
+void NetInfo::on_msg_list_req()
+{
+    //
+}
+
+int32_t NetInfo::send_msg(int32_t fd, uint8_t *data, uint32_t len, struct epoll_event &ev, int32_t epfd)
+{
+    if (!data || !len)
+    {
+        return -1;
+    }
+    int32_t nsend = send(fd, data, len, 0);
+    if (nsend == EAGAIN)
+    {
+        ev.data.fd = fd;
+        //设置用于注测的读操作事件
+        ev.events = EPOLLIN | EPOLLOUT | EPOLLET;
+        //注册ev
+        int32_t ret = epoll_ctl(epfd, EPOLL_CTL_MOD, fd, &ev);
+        if (ret != 0)
+        {
+            char log_buf[256] = {0};
+            sprintf(log_buf, "ReadThread, epoll_ctl fail:%d,errno:%d.", ret, errno);
+            write_log(LOG_ERROR, (uint8_t *)log_buf);
+            close(fd);
+        }
+        {
+            char log_buf[256] = {0};
+            sprintf(log_buf, "send msg failed.");
+            write_log(LOG_ERROR, (uint8_t *)log_buf);
+        }
+    }
+    return nsend;
+}
+
+void buf_to_msg(uint8_t *src, uint32_t src_len, recv_msg &msg)
+{
+    if (!src || src_len < 10)
+        return;
+    memcpy_uint32(msg.guid, src + 0);
+    memcpy_uint16(msg.type, src + 4);
+    memcpy_uint32(msg.data_length, src + 6);
+}
+
+//读数据线程
+void *read_thread(void *arg)
+{
+    common_info *comm = static_cast<common_info *>(arg);
+    if (!comm)
+    {
+        char log_buf[256] = {0};
+        sprintf(log_buf, "Error, read_thread, invalid args!");
+        write_log(LOG_ERROR, (uint8_t *)log_buf);
+        return nullptr;
+    }
+    char log_buf[256] = {0};
+    sprintf(log_buf, "ReadThread, enter");
+    write_log(LOG_INFO, (uint8_t *)log_buf);
+    int32_t ret;                          //临时变量,存放返回值
+    int32_t epfd;                         //连接用的epoll
+    int32_t i;                            //临时变量,轮询数组用
+    int32_t nfds;                         //临时变量,有多少个socket有事件
+    struct epoll_event ev;                //事件临时变量
+    const int32_t MAXEVENTS = 1024;       //最大事件数
+    struct epoll_event events[MAXEVENTS]; //监听事件数组
+    int32_t iBackStoreSize = 1024;
+    const int32_t MAXBUFSIZE = 8192; //读数据缓冲区大小
+    char buf[MAXBUFSIZE];
+    char send_buf[MAXBUFSIZE];
+    int32_t buf_index = 0;
+    recv_msg temp_recv_msg;
+    int32_t nread;                                                 //读到的字节数
+    struct ipport tIpPort;                                         //地址端口信息
+    struct peerinfo tPeerInfo;                                     //对方连接信息
+    std::map<int32_t, struct ipport> mIpPort;                      //socket对应的对方地址端口信息
+    std::map<int32_t, struct ipport>::iterator itIpPort;           //临时迭代子
+    std::map<struct ipport, struct peerinfo>::iterator itPeerInfo; //临时迭代子
+
+    NetInfo net_info;
+    struct pipemsg msg; //消息队列数据
+
+    //创建epoll,对2.6.8以后的版本,其参数无效,只要大于0的数值就行,内核自己动态分配
+    epfd = epoll_create(iBackStoreSize);
+    if (epfd < 0)
+    {
+        char log_buf[256] = {0};
+        sprintf(log_buf, "ReadThread, epoll_create fail:%d,errno:%d", epfd, errno);
+        write_log(LOG_ERROR, (uint8_t *)log_buf);
+        return nullptr;
+    }
+
+    while (comm->running)
+    {
+        //从管道读数据
+        do
+        {
+            ret = read(comm->conn_info.rfd, &msg, 14);
+            if (ret > 0)
+            {
+                //队列中的fd必须是有效的
+                if (ret == 14 && msg.fd > 0)
+                {
+                    if (msg.op == 1) //收到新的连接
+                    {
+                        char log_buf[256] = {0};
+                        sprintf(log_buf, "ReadThread, recv connect:%d,errno:%d", msg.fd, errno);
+                        write_log(LOG_INFO, (uint8_t *)log_buf);
+                        //把socket设置为非阻塞方式
+                        setnonblocking(msg.fd);
+                        //设置描述符信息和数组下标信息
+                        ev.data.fd = msg.fd;
+                        //设置用于注测的读操作事件
+                        ev.events = EPOLLIN | EPOLLET;
+                        //注册ev
+                        ret = epoll_ctl(epfd, EPOLL_CTL_ADD, msg.fd, &ev);
+                        if (ret != 0)
+                        {
+                            char log_buf[256] = {0};
+                            sprintf(log_buf, "ReadThread, epoll_ctl fail:%d,errno:%d", ret, errno);
+                            write_log(LOG_ERROR, (uint8_t *)log_buf);
+                            close(msg.fd);
+                        }
+                        else
+                        {
+                            mIpPort[msg.fd] = tIpPort;
+                            tPeerInfo.fd = msg.fd;
+                            tPeerInfo.contime = time(NULL);
+                            tPeerInfo.rcvtime = 0;
+                            tPeerInfo.rcvbyte = 0;
+                            tPeerInfo.sndtime = 0;
+                            tPeerInfo.sndbyte = 0;
+                            comm->conn_info.peer[tIpPort] = tPeerInfo;
+                        }
+                    }
+                    else if (msg.op == 2) //断开某个连接
+                    {
+                        char log_buf[256] = {0};
+                        sprintf(log_buf, "ReadThread, recv close:%d,errno:%d", msg.fd, errno);
+                        write_log(LOG_INFO, (uint8_t *)log_buf);
+                        close(msg.fd);
+                        epoll_ctl(epfd, EPOLL_CTL_DEL, msg.fd, &ev);
+                        net_info.user_conn_map.erase(net_info.conn_user_map[msg.fd]);
+                        net_info.conn_user_map.erase(msg.fd);
+                        itIpPort = mIpPort.find(msg.fd);
+                        if (itIpPort != mIpPort.end())
+                        {
+                            mIpPort.erase(itIpPort);
+                            itPeerInfo = comm->conn_info.peer.find(itIpPort->second);
+                            if (itPeerInfo != comm->conn_info.peer.end())
+                            {
+                                comm->conn_info.peer.erase(itPeerInfo);
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                break;
+            }
+        } while (comm->running);
+
+        //等待epoll事件的发生,如果当前有信号的句柄数大于输出事件数组的最大大小,超过部分会在下次epoll_wait时输出,事件不会丢
+        nfds = epoll_wait(epfd, events, MAXEVENTS, 500);
+        //处理所发生的所有事件
+        for (i = 0; i < nfds && comm->running; ++i)
+        {
+            char log_buf[256] = {0};
+            sprintf(log_buf, "ReadThread, events:%d,errno:%d", events[i].events, errno);
+            write_log(LOG_INFO, (uint8_t *)log_buf);
+            if (events[i].events & EPOLLIN) //有数据可读
+            {
+                do
+                {
+                    nread = read(events[i].data.fd, buf + buf_index, MAXBUFSIZE - buf_index);
+                    if (nread > 0) //读到数据
+                    {
+                        char log_buf[256] = {0};
+                        sprintf(log_buf, "ReadThread, read:%d,errno:%d", nread, errno);
+                        write_log(LOG_INFO, (uint8_t *)log_buf);
+                        itIpPort = mIpPort.find(events[i].data.fd);
+                        if (itIpPort != mIpPort.end())
+                        {
+                            itPeerInfo = comm->conn_info.peer.find(itIpPort->second);
+                            if (itPeerInfo != comm->conn_info.peer.end())
+                            {
+                                itPeerInfo->second.rcvtime = time(NULL);
+                                itPeerInfo->second.rcvbyte += nread;
+                            }
+                        }
+                        if (nread > 14)
+                        {
+                            buf_to_msg((uint8_t *)buf, nread, temp_recv_msg);
+                            if (temp_recv_msg.data_length + 10 <= nread)
+                            {
+                                net_info.parse_msg((uint8_t *)buf, nread, events[i].data.fd, temp_recv_msg);
+                            }
+                            else
+                            {
+                                buf_index += nread;
+                            }
+                        }
+                        else
+                        {
+                            buf_index += nread;
+                        }
+                        if (buf_index == MAXBUFSIZE)
+                        {
+                            char log_buf[256] = {0};
+                            sprintf(log_buf, "Error, read data failed!");
+                            write_log(LOG_ERROR, (uint8_t *)log_buf);
+                            buf_index = 0;
+                        }
+                    }
+                    else if (nread < 0) //读取失败
+                    {
+                        if (errno == EAGAIN) //没有数据了
+                        {
+                            // char log_buf[256] = {0};
+                            // sprintf(log_buf, "ReadThread, read:%d,errno:%d,no data", nread, errno);
+                            // write_log(LOG_INFO, (uint8_t *)log_buf);
+                            break;
+                        }
+                        else if (errno == EINTR) //可能被内部中断信号打断,经过验证对非阻塞socket并未收到此错误,应该可以省掉该步判断
+                        {
+                            char log_buf[256] = {0};
+                            sprintf(log_buf, "ReadThread, read:%d,errno:%d,interrupt", nread, errno);
+                            write_log(LOG_INFO, (uint8_t *)log_buf);
+                        }
+                        else //客户端主动关闭
+                        {
+                            char log_buf[256] = {0};
+                            sprintf(log_buf, "ReadThread, read:%d,errno:%d,peer error", nread, errno);
+                            write_log(LOG_INFO, (uint8_t *)log_buf);
+                            close(events[i].data.fd);
+                            epoll_ctl(epfd, EPOLL_CTL_DEL, events[i].data.fd, &ev);
+                            itIpPort = mIpPort.find(events[i].data.fd);
+                            if (itIpPort != mIpPort.end())
+                            {
+                                mIpPort.erase(itIpPort);
+                                itPeerInfo = comm->conn_info.peer.find(itIpPort->second);
+                                if (itPeerInfo != comm->conn_info.peer.end())
+                                {
+                                    comm->conn_info.peer.erase(itPeerInfo);
+                                }
+                            }
+
+                            break;
+                        }
+                    }
+                    else if (nread == 0) //客户端主动关闭
+                    {
+                        char log_buf[256] = {0};
+                        sprintf(log_buf, "ReadThread, read:%d,errno:%d,peer close", nread, errno);
+                        write_log(LOG_INFO, (uint8_t *)log_buf);
+                        close(events[i].data.fd);
+                        epoll_ctl(epfd, EPOLL_CTL_DEL, events[i].data.fd, &ev);
+                        itIpPort = mIpPort.find(events[i].data.fd);
+                        if (itIpPort != mIpPort.end())
+                        {
+                            mIpPort.erase(itIpPort);
+                            itPeerInfo = comm->conn_info.peer.find(itIpPort->second);
+                            if (itPeerInfo != comm->conn_info.peer.end())
+                            {
+                                comm->conn_info.peer.erase(itPeerInfo);
+                            }
+                        }
+
+                        break;
+                    }
+                } while (comm->running);
+            }
+            else if (events[i].events & EPOLLOUT) //有数据可写
+            {
+                ev.data.fd = events[i].data.fd;
+                //设置用于注测的读操作事件
+                //
+                //
+                ev.events = EPOLLIN | EPOLLET;
+                //注册ev
+                ret = epoll_ctl(epfd, EPOLL_CTL_MOD, events[i].data.fd, &ev);
+                if (ret != 0)
+                {
+                    char log_buf[256] = {0};
+                    sprintf(log_buf, "ReadThread, epoll_ctl fail:%d,errno:%d.", ret, errno);
+                    write_log(LOG_ERROR, (uint8_t *)log_buf);
+                    close(msg.fd);
+                }
+            }
+            else if (events[i].events & EPOLLERR || events[i].events & EPOLLHUP) //有异常发生
+            {
+                char log_buf[256] = {0};
+                sprintf(log_buf, "ReadThread, read:%d,errno:%d,err or hup", nread, errno);
+                write_log(LOG_ERROR, (uint8_t *)log_buf);
+                close(events[i].data.fd);
+                epoll_ctl(epfd, EPOLL_CTL_DEL, events[i].data.fd, &ev);
+                itIpPort = mIpPort.find(events[i].data.fd);
+                if (itIpPort != mIpPort.end())
+                {
+                    mIpPort.erase(itIpPort);
+                    itPeerInfo = comm->conn_info.peer.find(itIpPort->second);
+                    if (itPeerInfo != comm->conn_info.peer.end())
+                    {
+                        comm->conn_info.peer.erase(itPeerInfo);
+                    }
+                }
+            }
+        }
+        while (!net_info.msg_list.empty())
+        {
+            std::shared_ptr<msg_info> &msg_t = net_info.msg_list.front();
+            uint32_t send_index = 0;
+            uint16_t send_msg_type = recv_msg_type::MSG_SEND;
+            memcpy(send_buf + send_index, &msg_t->send_guid, sizeof(msg_t->send_guid));
+            send_index += sizeof(msg_t->send_guid);
+            memcpy(send_buf + send_index, &send_msg_type, sizeof(send_msg_type));
+            send_index += sizeof(send_msg_type);
+            uint32_t send_data_length = 0;
+            send_index += sizeof(send_data_length);
+            send_data_length = msg_t->to_data((uint8_t *)(send_buf + send_index), sizeof(send_buf) - send_index);
+            if (send_data_length == 0)
+            {
+                //TODO:error_log
+                net_info.msg_list.pop_front();
+                continue;
+            }
+            memcpy(send_buf + send_index - sizeof(send_data_length), &send_data_length, sizeof(send_data_length));
+            send_index += send_data_length;
+            if (msg_t->msg_type == msg_info::MSG_TYPE_GROUP)
+            {
+                auto itor = net_info.groups_map.find(msg_t->recv_guid);
+                if (itor != net_info.groups_map.end())
+                {
+                    itor->second->traverse_all_members([&](std::shared_ptr<group_member_info> &info) -> bool
+                                                       {
+                                                           auto conn_itor = net_info.user_conn_map.find(info->user_guid);
+                                                           if (conn_itor != net_info.user_conn_map.end())
+                                                           {
+                                                               if (conn_itor->first != info->user_guid)
+                                                               {
+                                                                   net_info.send_msg(conn_itor->second, (uint8_t *)send_buf, send_index, ev, epfd);
+                                                               }
+                                                           }
+                                                       });
+                }
+            }
+            else if (msg_t->msg_type == msg_info::MSG_TYPE_USER)
+            {
+                auto conn_itor = net_info.user_conn_map.find(msg_t->recv_guid);
+                if (conn_itor != net_info.user_conn_map.end())
+                {
+                    if (conn_itor->first != msg_t->send_guid)
+                    {
+                        net_info.send_msg(conn_itor->second, (uint8_t *)send_buf, send_index, ev, epfd);
+                    }
+                }
+            }
+            else if (msg_t->msg_type == msg_info::MSG_TYPE_ALL)
+            {
+                for (const auto &it : net_info.user_conn_map)
+                {
+                    if (it.first == msg_t->send_guid)
+                        continue;
+                    net_info.send_msg(it.second, (uint8_t *)send_buf, send_index, ev, epfd);
+                }
+            }
+            net_info.msg_list.pop_front();
+        }
+    }
+
+    //关闭所有连接
+    for (itIpPort = mIpPort.begin(); itIpPort != mIpPort.end(); itIpPort++)
+    {
+        if (itIpPort->first > 0)
+        {
+            close(itIpPort->first);
+        }
+    }
+    //关闭创建的epoll
+    if (epfd > 0)
+    {
+        close(epfd);
+    }
+    //char log_buf[256] = {0};
+    sprintf(log_buf, "ReadThread, exit.");
+    write_log(LOG_INFO, (uint8_t *)log_buf);
+    return nullptr;
+}
