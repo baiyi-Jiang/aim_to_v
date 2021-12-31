@@ -18,6 +18,11 @@ void check_big_data()
     }
 }
 
+bool get_is_big_data()
+{
+    return is_big_data;
+}
+
 uint32_t get_time_sec()
 {
     struct timeval now;
@@ -57,33 +62,5 @@ void setreuseaddr(int32_t sock)
     {
         perror("setsockopt");
         exit(1);
-    }
-}
-
-void memcpy_uint16(uint16_t& src_num, const uint8_t* data)
-{
-    if(is_big_data)
-    {
-        memcpy(&src_num + 1, data + 0, 1);
-        memcpy(&src_num + 0, data + 1, 1);
-    }
-    else
-    {
-        memcpy(&src_num, data, 2);
-    }
-}
-
-void memcpy_uint32(uint32_t& src_num, const uint8_t* data)
-{
-    if(is_big_data)
-    {
-        memcpy(&src_num + 3, data + 0, 1);
-        memcpy(&src_num + 2, data + 1, 1);
-        memcpy(&src_num + 1, data + 2, 1);
-        memcpy(&src_num + 0, data + 3, 1);
-    }
-    else
-    {
-        memcpy(&src_num, data, 4);
     }
 }

@@ -60,16 +60,11 @@ struct msg_info
         if (!data || len < length())
             return false;
         uint32_t index = 0;
-        memcpy_uint32(send_guid, data + index);
-        index += sizeof(send_guid);
-        memcpy_uint32(recv_guid, data + index);
-        index += sizeof(recv_guid);
-        memcpy_uint32(time_sec, data + index);
-        index += sizeof(time_sec);
-        memcpy_uint32(msg_length, data + index);
-        index += sizeof(msg_length);
-        memcpy_uint16(msg_num, data + index);
-        index += sizeof(msg_num);
+        index += memcpy_u(send_guid, data + index);
+        index += memcpy_u(recv_guid, data + index);
+        index += memcpy_u(time_sec, data + index);
+        index += memcpy_u(msg_length, data + index);
+        index += memcpy_u(msg_num, data + index);
         msg_type = data[index++];
         keep1 = data[index++];
         if (len - length() < msg_length)
@@ -93,20 +88,13 @@ struct msg_info
         uint32_t index = 0;
         if (!data || len < length() + msg.size())
             return index;
-        memcpy(data + index, &send_guid, sizeof(send_guid));
-        index += sizeof(send_guid);
-        memcpy(data + index, &recv_guid, sizeof(recv_guid));
-        index += sizeof(recv_guid);
-        memcpy(data + index, &time_sec, sizeof(time_sec));
-        index += sizeof(time_sec);
-        memcpy(data + index, &msg_length, sizeof(msg_length));
-        index += sizeof(msg_length);
-        memcpy(data + index, &msg_num, sizeof(msg_num));
-        index += sizeof(msg_num);
-        memcpy(data + index, &msg_type, sizeof(msg_type));
-        index += sizeof(msg_type);
-        memcpy(data + index, &keep1, sizeof(keep1));
-        index += sizeof(keep1);
+        index += memcpy_u(data + index, send_guid);
+        index += memcpy_u(data + index, recv_guid);
+        index += memcpy_u(data + index, time_sec);
+        index += memcpy_u(data + index, msg_length);
+        index += memcpy_u(data + index, msg_num);
+        index += memcpy_u(data + index, msg_type);
+        index += memcpy_u(data + index, keep1);
         memcpy(data + index, msg.c_str(), msg.size());
         index += msg.size();
         return index;
@@ -152,14 +140,10 @@ struct group_member_info
         if (!data || len < length())
             return false;
         uint32_t index = 0;
-        memcpy_uint32(group_guid, data + index);
-        index += sizeof(group_guid);
-        memcpy_uint32(user_guid, data + index);
-        index += sizeof(user_guid);
-        memcpy_uint32(icon_guid, data + index);
-        index += sizeof(icon_guid);
-        memcpy_uint16(msg_count, data + index);
-        index += sizeof(msg_count);
+        index += memcpy_u(group_guid, data + index);
+        index += memcpy_u(user_guid, data + index);
+        index += memcpy_u(icon_guid, data + index);
+        index += memcpy_u(msg_count, data + index);
         permissions = data[index++];
         job = data[index++];
         memset(name, '\0', sizeof(name));
@@ -183,18 +167,12 @@ struct group_member_info
         uint32_t index = 0;
         if (!data || len < length())
             return index;
-        memcpy(data + index, &group_guid, sizeof(group_guid));
-        index += sizeof(group_guid);
-        memcpy(data + index, &user_guid, sizeof(user_guid));
-        index += sizeof(user_guid);
-        memcpy(data + index, &icon_guid, sizeof(icon_guid));
-        index += sizeof(icon_guid);
-        memcpy(data + index, &msg_count, sizeof(msg_count));
-        index += sizeof(msg_count);
-        memcpy(data + index, &permissions, sizeof(permissions));
-        index += sizeof(permissions);
-        memcpy(data + index, &job, sizeof(job));
-        index += sizeof(job);
+        index += memcpy_u(data + index, group_guid);
+        index += memcpy_u(data + index, user_guid);
+        index += memcpy_u(data + index, icon_guid);
+        index += memcpy_u(data + index, msg_count);
+        index += memcpy_u(data + index, permissions);
+        index += memcpy_u(data + index, job);
         memcpy(data + index, name, sizeof(name));
         index += sizeof(name);
         return index;
@@ -244,8 +222,7 @@ struct user_info_req
         if (!data || len < length())
             return false;
         uint32_t index = 0;
-        memcpy_uint32(user_guid, data + index);
-        index += sizeof(user_guid);
+        index += memcpy_u(user_guid, data + index);
         return true;
     }
     uint32_t length()
@@ -258,8 +235,7 @@ struct user_info_req
         uint32_t index = 0;
         if (!data || len < length())
             return index;
-        memcpy(data + index, &user_guid, sizeof(user_guid));
-        index += sizeof(user_guid);
+        index += memcpy_u(data + index, user_guid);
         return index;
     }
     uint32_t user_guid;
@@ -272,8 +248,7 @@ struct group_info_req
         if (!data || len < length())
             return false;
         uint32_t index = 0;
-        memcpy_uint32(group_guid, data + index);
-        index += sizeof(group_guid);
+        index += memcpy_u(group_guid, data + index);
         return true;
     }
     uint32_t length()
@@ -286,8 +261,7 @@ struct group_info_req
         uint32_t index = 0;
         if (!data || len < length())
             return index;
-        memcpy(data + index, &group_guid, sizeof(group_guid));
-        index += sizeof(group_guid);
+        index += memcpy_u(data + index, group_guid);
         return index;
     }
     uint32_t group_guid;
@@ -300,12 +274,9 @@ struct recv_msg
         if (!src_data || len < length())
             return false;
         uint32_t index = 0;
-        memcpy_uint32(guid, src_data + index);
-        index += sizeof(guid);
-        memcpy_uint16(type, src_data + index);
-        index += sizeof(type);
-        memcpy_uint32(data_length, src_data + index);
-        index += sizeof(data_length);
+        index += memcpy_u(guid, src_data + index);
+        index += memcpy_u(type, src_data + index);
+        index += memcpy_u(data_length, src_data + index);
         if (len - length() < data_length)
         {
             return false;
@@ -325,12 +296,9 @@ struct recv_msg
         uint32_t index = 0;
         if (!data || len < length())
             return index;
-        memcpy(data + index, &guid, sizeof(guid));
-        index += sizeof(guid);
-        memcpy(data + index, &type, sizeof(type));
-        index += sizeof(type);
-        memcpy(data + index, &data_length, sizeof(data_length));
-        index += sizeof(data_length);
+        index += memcpy_u(data + index, guid);
+        index += memcpy_u(data + index, type);
+        index += memcpy_u(data + index, data_length);
         return index;
     }
     uint32_t guid;

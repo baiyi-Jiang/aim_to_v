@@ -24,6 +24,7 @@ public:
 
     bool from_data(uint32_t global_guid, const uint8_t *data, uint32_t data_len);
     uint32_t length();
+    uint32_t to_data(uint8_t *data, const uint32_t len);
     uint32_t get_user_guid() { return user_guid; }
     uint32_t get_icon_guid() { return icon_guid; }
     uint32_t get_reg_time() { return reg_time; }

@@ -16,21 +16,18 @@ bool GroupInfo::from_data(uint32_t global_guid, const uint8_t *data, uint32_t da
         return false;
     }
     int32_t index = 0;
-    memcpy_uint32(group_guid, data + index);
+    index += memcpy_u(group_guid, data + index);
     if (0 == group_guid)
         group_guid = ++global_guid;
-    index += sizeof(group_guid);
-    memcpy_uint32(member_count, data + index);
-    index += sizeof(member_count);
-    memcpy_uint32(learder_guid, data + index);
-    index += sizeof(learder_guid);
+    index += memcpy_u(member_count, data + index);
+    index += memcpy_u(learder_guid, data + index);
     struct group_member_info info;
     uint32_t info_length = info.length();
     if (member_count * info_length > data_len - index)
     {
         return false;
     }
-    for (int32_t i = 0; i < member_count; ++i)
+    for (uint32_t i = 0; i < member_count; ++i)
     {
         info.from_data(data + index, data_len - index);
         index += info_length;
@@ -45,12 +42,9 @@ uint32_t GroupInfo::to_data(uint8_t *data, const uint32_t data_len)
     {
         return index;
     }
-    memcpy(data + index, &group_guid, sizeof(group_guid));
-    index += sizeof(group_guid);
-    memcpy(data + index, &member_count, sizeof(member_count));
-    index += sizeof(member_count);
-    memcpy(data + index, &learder_guid, sizeof(learder_guid));
-    index += sizeof(learder_guid);
+    index += memcpy_u(data + index, group_guid);
+    index += memcpy_u(data + index, member_count);
+    index += memcpy_u(data + index, learder_guid);
     struct group_member_info info;
     if (member_count * info.length() > data_len - index)
     {
@@ -58,7 +52,7 @@ uint32_t GroupInfo::to_data(uint8_t *data, const uint32_t data_len)
         return index;
     }
     //TODO:这种写法有风险，group_member_info内若有不定长的数据则会出错，有待改进
-    for (int32_t i = 0; i < member_count; ++i)
+    for (uint32_t i = 0; i < member_count; ++i)
     {
         index += info.to_data(data + index, data_len - index);
     }
@@ -112,7 +106,7 @@ bool GroupInfo::on_add_member(uint32_t operator_guid, uint32_t user_guid, uint32
     group_info->msg_count = 0;
     group_info->permissions = group_permission::SEND_TO_ALL;
     group_info->job = group_member_info::GROUP_JOB_MEMBER;
-    memcpy(group_info->name, user_name, sizeof(user_name));
+    memcpy(group_info->name, user_name, sizeof(group_info->name));
     members_list.push_back(group_info);
     if (operator_guid == 0 && member_count == 0)
     {
@@ -179,6 +173,7 @@ bool GroupInfo::on_add_manager(uint32_t operator_guid, uint32_t user_guid)
     if (info != nullptr)
         info->job = group_member_info::GROUP_JOB_MANAGER;
     members_map.erase(member_itor);
+    return true;
 }
 
 bool GroupInfo::on_delete_manager(uint32_t operator_guid, uint32_t user_guid)
@@ -202,6 +197,7 @@ bool GroupInfo::on_delete_manager(uint32_t operator_guid, uint32_t user_guid)
     if (info != nullptr)
         info->job = group_member_info::GROUP_JOB_MEMBER;
     managers_map.erase(manager_itor);
+    return true;
 }
 
 bool GroupInfo::on_change_permissions(uint32_t operator_guid, uint32_t user_guid, uint16_t permissions)

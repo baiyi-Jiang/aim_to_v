@@ -69,12 +69,14 @@ bool NetInfo::parse_msg(const uint8_t *data, uint32_t len, int32_t fd, struct re
         break;
     }
     }
+    return true;
 }
 
 void NetInfo::on_acount_add(const uint8_t *data, uint32_t len, int32_t fd)
 {
     UserInfo user;
-    user.from_data(global_user_guid, data, len);
+    if (!user.from_data(global_user_guid, data, len))
+        return;
     users.push_back(user);
     users_map[user.get_user_guid()] = std::prev(users.end());
     user_conn_map[user.get_user_guid()] = fd;
@@ -114,7 +116,8 @@ void NetInfo::on_user_info_req(uint32_t guid, const uint8_t *data, uint32_t len,
 void NetInfo::on_group_info_req(uint32_t guid, const uint8_t *data, uint32_t len, int32_t fd)
 {
     struct group_info_req req;
-    req.from_data(data, len);
+    if (!req.from_data(data, len))
+        return;
     auto itor = groups_map.find(req.group_guid);
     if (itor != groups_map.end())
     {
@@ -182,9 +185,10 @@ void buf_to_msg(uint8_t *src, uint32_t src_len, recv_msg &msg)
 {
     if (!src || src_len < 10)
         return;
-    memcpy_uint32(msg.guid, src + 0);
-    memcpy_uint16(msg.type, src + 4);
-    memcpy_uint32(msg.data_length, src + 6);
+    uint32_t index = 0;
+    index += memcpy_u(msg.guid, src + index);
+    index += memcpy_u(msg.type, src + index);
+    index += memcpy_u(msg.data_length, src + index);
 }
 
 //读数据线程
@@ -206,9 +210,9 @@ void *read_thread(void *arg)
     int32_t &epfd = net_info.epfd;        //连接用的epoll
     struct epoll_event &ev = net_info.ev; //事件临时变量
     char *send_buf = net_info.send_buf;   //发送缓冲区
-    int32_t ret;                          //临时变量,存放返回值
-    int32_t i;                            //临时变量,轮询数组用
-    int32_t nfds;                         //临时变量,有多少个socket有事件
+    int32_t ret = 0;                          //临时变量,存放返回值
+    int32_t i = 0;                            //临时变量,轮询数组用
+    int32_t nfds = 0;                         //临时变量,有多少个socket有事件
     const int32_t MAXEVENTS = 1024;       //最大事件数
     struct epoll_event events[MAXEVENTS]; //监听事件数组
     int32_t iBackStoreSize = 1024;
@@ -216,7 +220,7 @@ void *read_thread(void *arg)
     int32_t buf_index = 0;
     struct recv_msg temp_recv_msg;
     const uint32_t recv_msg_head_length = temp_recv_msg.length();
-    int32_t nread;                                                 //读到的字节数
+    int32_t nread = 0;                                                 //读到的字节数
     struct ipport tIpPort;                                         //地址端口信息
     struct peerinfo tPeerInfo;                                     //对方连接信息
     std::map<int32_t, struct ipport> mIpPort;                      //socket对应的对方地址端口信息
@@ -336,7 +340,7 @@ void *read_thread(void *arg)
                         if (nread > 14)
                         {
                             buf_to_msg((uint8_t *)buf, nread, temp_recv_msg);
-                            if (temp_recv_msg.data_length + recv_msg_head_length <= nread)
+                            if (temp_recv_msg.data_length + recv_msg_head_length <= (uint32_t)nread)
                             {
                                 net_info.parse_msg((uint8_t *)buf, nread, events[i].data.fd, temp_recv_msg);
                             }
@@ -478,6 +482,7 @@ void *read_thread(void *arg)
                                                                    net_info.send_msg(conn_itor->second, (uint8_t *)send_buf, recv_msg_head_length + temp_recv_msg.data_length);
                                                                }
                                                            }
+                                                           return true;
                                                        });
                 }
             }

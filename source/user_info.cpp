@@ -25,24 +25,19 @@ bool UserInfo::from_data(uint32_t global_guid, const uint8_t *data, uint32_t dat
         return false;
     }
     int32_t index = 0;
-    memcpy_uint32(user_guid, data + index);
+    index += memcpy_u(user_guid, data + index);
     if (0 == user_guid)
         user_guid = ++global_guid;
-    index += sizeof(user_guid);
-    memcpy_uint32(icon_guid, data + index);
-    index += sizeof(icon_guid);
-    memcpy_uint32(reg_time, data + index);
+    index += memcpy_u(icon_guid, data + index);
+    index += memcpy_u(reg_time, data + index);
     if (0 == reg_time)
         reg_time = get_time_sec();
-    index += sizeof(reg_time);
-    memcpy_uint32(last_login_time, data + index);
+    index += memcpy_u(last_login_time, data + index);
     if (0 == last_login_time)
         last_login_time = get_time_sec();
-    index += sizeof(last_login_time);
-    memcpy_uint32(last_logout_time, data + index);
+    index += memcpy_u(last_logout_time, data + index);
     if (0 == last_logout_time)
         last_logout_time = get_time_sec();
-    index += sizeof(last_logout_time);
     age = data[index++];
     sex = data[index++];
     keep1 = data[index++];
@@ -85,6 +80,41 @@ uint32_t UserInfo::length()
     length += sizeof(passwd);
     length += sizeof(custom);
     return length;
+}
+
+uint32_t UserInfo::to_data(uint8_t *data, const uint32_t len)
+{
+    uint32_t index = 0;
+    if (!data || len < length())
+    {
+        return index;
+    }
+    index += memcpy_u(data + index, user_guid);
+    index += memcpy_u(data + index, icon_guid);
+    index += memcpy_u(data + index, reg_time);
+    index += memcpy_u(data + index, last_login_time);
+    index += memcpy_u(data + index, last_logout_time);
+    index += memcpy_u(data + index, age);
+    index += memcpy_u(data + index, sex);
+    index += memcpy_u(data + index, keep1);
+    index += memcpy_u(data + index, keep2);
+    memcpy(data + index, name, sizeof(name));
+    index += sizeof(name);
+    memcpy(data + index, phone, sizeof(phone));
+    index += sizeof(phone);
+    memcpy(data + index, qq, sizeof(qq));
+    index += sizeof(qq);
+    memcpy(data + index, wechat, sizeof(wechat));
+    index += sizeof(wechat);
+    memcpy(data + index, eamil, sizeof(eamil));
+    index += sizeof(eamil);
+    memcpy(data + index, city, sizeof(city));
+    index += sizeof(city);
+    memcpy(data + index, passwd, sizeof(passwd));
+    index += sizeof(passwd);
+    memcpy(data + index, custom, sizeof(custom));
+    index += sizeof(custom);
+    return index;
 }
 
 bool UserInfo::traverse_list(uint32_t guid, const std::function<bool(std::shared_ptr<msg_info> &)> &func)

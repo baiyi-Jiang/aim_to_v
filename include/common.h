@@ -39,15 +39,47 @@ uint32_t get_time_sec();
 
 void check_big_data();
 
+bool get_is_big_data();
+
 void write_log(log_level level, uint8_t *msg);
 
 void setnonblocking(int32_t sock);
 
 void setreuseaddr(int32_t sock);
 
-void memcpy_uint16(uint16_t& src_num, const uint8_t* data);
+template <class U>
+uint32_t memcpy_u(U &src_num, const uint8_t *data)
+{
+    if (!get_is_big_data())
+    {
+        memcpy(&src_num, data, sizeof(U));
+    }
+    else
+    {
+        for (uint32_t i = 0; i < sizeof(U); ++i)
+        {
+            memcpy(&src_num + (sizeof(U) - i - 1), data + i, 1);
+        }
+    }
+    return sizeof(U);
+}
 
-void memcpy_uint32(uint32_t& src_num, const uint8_t* data);
+template <class U>
+uint32_t memcpy_u(uint8_t *data, U &src_num)
+{
+    if (!get_is_big_data())
+    {
+        memcpy(data, &src_num, sizeof(U));
+    }
+    else
+    {
+        for (uint32_t i = 0; i < sizeof(U); ++i)
+        {
+            memcpy(data + i, &src_num + (sizeof(U) - i - 1), 1);
+        }
+    }
+    return sizeof(U);
+}
 
 void *read_thread(void *arg);
 
