@@ -15,7 +15,7 @@ public:
     uint32_t get_member_count() { return member_count; }
     uint32_t get_learder_guid() { return learder_guid; }
     std::shared_ptr<group_member_info> get_member_by_guid(uint32_t guid);
-    bool on_add_member(uint32_t operator_guid, uint32_t user_guid);
+    bool on_add_member(uint32_t operator_guid, uint32_t user_guid, uint32_t icon_guid, uint8_t* user_name);
     bool on_delete_member(uint32_t operator_guid, uint32_t user_guid);
     bool on_add_manager(uint32_t operator_guid, uint32_t user_guid);
     bool on_delete_manager(uint32_t operator_guid, uint32_t user_guid);

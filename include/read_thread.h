@@ -4,6 +4,8 @@
 #include "user_info.h"
 #include "group_info.h"
 
+#define MAXBUFSIZE 8192 //数据缓冲区大小
+
 class NetInfo
 {
 public:
@@ -15,17 +17,18 @@ public:
     {
         //
     }
-    bool parse_msg(const uint8_t *data, uint32_t len, int32_t fd, const recv_msg &msg);
+    bool parse_msg(const uint8_t *data, uint32_t len, int32_t fd, struct recv_msg &msg);
     void on_acount_add(const uint8_t *data, uint32_t len, int32_t fd);
     void on_acount_modify();
     void on_acount_delete();
     void on_group_add();
     void on_group_modify();
     void on_group_delete();
-    void on_user_info_req();
+    void on_user_info_req(uint32_t guid, const uint8_t *data, uint32_t len, int32_t fd);
+    void on_group_info_req(uint32_t guid, const uint8_t *data, uint32_t len, int32_t fd);
     void on_msg_send(uint32_t guid, const uint8_t *data, uint32_t len, int32_t fd);
     void on_msg_list_req();
-    int32_t send_msg(int32_t fd, uint8_t *data, uint32_t len, struct epoll_event &ev, int32_t epfd);
+    int32_t send_msg(int32_t fd, uint8_t *data, uint32_t len);
 
 public:
     std::map<int32_t, uint32_t> conn_user_map;     //连接客户端列表
@@ -35,4 +38,7 @@ public:
     std::map<uint32_t, std::list<GroupInfo>::iterator> groups_map;
     std::list<UserInfo> users;
     std::map<uint32_t, std::list<UserInfo>::iterator> users_map;
+    int32_t epfd;              //连接用的epoll
+    struct epoll_event ev;     //事件临时变量
+    char send_buf[MAXBUFSIZE]; //发送缓冲区
 };

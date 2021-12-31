@@ -8,9 +8,10 @@ uint32_t global_user_guid = 0;
 uint32_t global_group_guid = 0;
 uint32_t global_msg_num = 0;
 
-bool NetInfo::parse_msg(const uint8_t *data, uint32_t len, int32_t fd, const recv_msg &msg)
+bool NetInfo::parse_msg(const uint8_t *data, uint32_t len, int32_t fd, struct recv_msg &msg)
 {
-    if (msg.type > recv_msg_type::RECV_MST_TYPE_MAX)
+    uint32_t msg_head_length = msg.length();
+    if (msg.type > recv_msg_type::SERVER_MSG_TYPE_MAX)
     {
         char log_buf[256] = {0};
         sprintf(log_buf, "Error, msg type error!");
@@ -21,7 +22,7 @@ bool NetInfo::parse_msg(const uint8_t *data, uint32_t len, int32_t fd, const rec
     {
     case recv_msg_type::ACOUNT_ADD:
     {
-        on_acount_add(data + 10, msg.data_length, fd);
+        on_acount_add(data + msg_head_length, msg.data_length, fd);
         break;
     }
     case recv_msg_type::ACOUNT_MODIFY:
@@ -46,11 +47,17 @@ bool NetInfo::parse_msg(const uint8_t *data, uint32_t len, int32_t fd, const rec
     }
     case recv_msg_type::USER_INFO_REQ:
     {
+        on_user_info_req(msg.guid, data + msg_head_length, len, fd);
+        break;
+    }
+    case recv_msg_type::GROUP_INFO_REQ:
+    {
+        on_group_info_req(msg.guid, data + msg_head_length, len, fd);
         break;
     }
     case recv_msg_type::MSG_SEND:
     {
-        on_msg_send(msg.guid, data + 10, len, fd);
+        on_msg_send(msg.guid, data + msg_head_length, len, fd);
         break;
     }
     case recv_msg_type::MSG_LIST_REQ:
@@ -99,9 +106,27 @@ void NetInfo::on_group_delete()
     //
 }
 
-void NetInfo::on_user_info_req()
+void NetInfo::on_user_info_req(uint32_t guid, const uint8_t *data, uint32_t len, int32_t fd)
 {
     //
+}
+
+void NetInfo::on_group_info_req(uint32_t guid, const uint8_t *data, uint32_t len, int32_t fd)
+{
+    struct group_info_req req;
+    req.from_data(data, len);
+    auto itor = groups_map.find(req.group_guid);
+    if (itor != groups_map.end())
+    {
+        struct recv_msg tmp_msg;
+        tmp_msg.guid = 0;
+        tmp_msg.type = recv_msg_type::CLIENT_GROUP_INFO_ACK;
+        tmp_msg.data_length = itor->second->to_data((uint8_t *)send_buf + tmp_msg.length(), MAXBUFSIZE - tmp_msg.length());
+        if (tmp_msg.data_length && tmp_msg.to_head((uint8_t *)send_buf, MAXBUFSIZE))
+        {
+            send_msg(fd, (uint8_t *)send_buf, tmp_msg.data_length + tmp_msg.length());
+        }
+    }
 }
 
 void NetInfo::on_msg_send(uint32_t guid, const uint8_t *data, uint32_t len, int32_t fd)
@@ -123,7 +148,7 @@ void NetInfo::on_msg_list_req()
     //
 }
 
-int32_t NetInfo::send_msg(int32_t fd, uint8_t *data, uint32_t len, struct epoll_event &ev, int32_t epfd)
+int32_t NetInfo::send_msg(int32_t fd, uint8_t *data, uint32_t len)
 {
     if (!data || !len)
     {
@@ -176,28 +201,28 @@ void *read_thread(void *arg)
     char log_buf[256] = {0};
     sprintf(log_buf, "ReadThread, enter");
     write_log(LOG_INFO, (uint8_t *)log_buf);
+
+    NetInfo net_info;
+    int32_t &epfd = net_info.epfd;        //连接用的epoll
+    struct epoll_event &ev = net_info.ev; //事件临时变量
+    char *send_buf = net_info.send_buf;   //发送缓冲区
     int32_t ret;                          //临时变量,存放返回值
-    int32_t epfd;                         //连接用的epoll
     int32_t i;                            //临时变量,轮询数组用
     int32_t nfds;                         //临时变量,有多少个socket有事件
-    struct epoll_event ev;                //事件临时变量
     const int32_t MAXEVENTS = 1024;       //最大事件数
     struct epoll_event events[MAXEVENTS]; //监听事件数组
     int32_t iBackStoreSize = 1024;
-    const int32_t MAXBUFSIZE = 8192; //读数据缓冲区大小
-    char buf[MAXBUFSIZE];
-    char send_buf[MAXBUFSIZE];
+    char buf[MAXBUFSIZE] = {0};
     int32_t buf_index = 0;
-    recv_msg temp_recv_msg;
+    struct recv_msg temp_recv_msg;
+    const uint32_t recv_msg_head_length = temp_recv_msg.length();
     int32_t nread;                                                 //读到的字节数
     struct ipport tIpPort;                                         //地址端口信息
     struct peerinfo tPeerInfo;                                     //对方连接信息
     std::map<int32_t, struct ipport> mIpPort;                      //socket对应的对方地址端口信息
     std::map<int32_t, struct ipport>::iterator itIpPort;           //临时迭代子
     std::map<struct ipport, struct peerinfo>::iterator itPeerInfo; //临时迭代子
-
-    NetInfo net_info;
-    struct pipemsg msg; //消息队列数据
+    struct pipemsg msg;                                            //消息队列数据
 
     //创建epoll,对2.6.8以后的版本,其参数无效,只要大于0的数值就行,内核自己动态分配
     epfd = epoll_create(iBackStoreSize);
@@ -311,7 +336,7 @@ void *read_thread(void *arg)
                         if (nread > 14)
                         {
                             buf_to_msg((uint8_t *)buf, nread, temp_recv_msg);
-                            if (temp_recv_msg.data_length + 10 <= nread)
+                            if (temp_recv_msg.data_length + recv_msg_head_length <= nread)
                             {
                                 net_info.parse_msg((uint8_t *)buf, nread, events[i].data.fd, temp_recv_msg);
                             }
@@ -429,23 +454,15 @@ void *read_thread(void *arg)
         while (!net_info.msg_list.empty())
         {
             std::shared_ptr<msg_info> &msg_t = net_info.msg_list.front();
-            uint32_t send_index = 0;
-            uint16_t send_msg_type = recv_msg_type::MSG_SEND;
-            memcpy(send_buf + send_index, &msg_t->send_guid, sizeof(msg_t->send_guid));
-            send_index += sizeof(msg_t->send_guid);
-            memcpy(send_buf + send_index, &send_msg_type, sizeof(send_msg_type));
-            send_index += sizeof(send_msg_type);
-            uint32_t send_data_length = 0;
-            send_index += sizeof(send_data_length);
-            send_data_length = msg_t->to_data((uint8_t *)(send_buf + send_index), sizeof(send_buf) - send_index);
-            if (send_data_length == 0)
+            temp_recv_msg.guid = msg_t->send_guid;
+            temp_recv_msg.type = recv_msg_type::CLIENT_MSG_SEND;
+            temp_recv_msg.data_length = msg_t->to_data((uint8_t *)(send_buf + recv_msg_head_length), sizeof(send_buf) - recv_msg_head_length);
+            if (!temp_recv_msg.data_length || !temp_recv_msg.to_head((uint8_t *)send_buf, sizeof(send_buf)))
             {
                 //TODO:error_log
                 net_info.msg_list.pop_front();
                 continue;
             }
-            memcpy(send_buf + send_index - sizeof(send_data_length), &send_data_length, sizeof(send_data_length));
-            send_index += send_data_length;
             if (msg_t->msg_type == msg_info::MSG_TYPE_GROUP)
             {
                 auto itor = net_info.groups_map.find(msg_t->recv_guid);
@@ -458,7 +475,7 @@ void *read_thread(void *arg)
                                                            {
                                                                if (conn_itor->first != info->user_guid)
                                                                {
-                                                                   net_info.send_msg(conn_itor->second, (uint8_t *)send_buf, send_index, ev, epfd);
+                                                                   net_info.send_msg(conn_itor->second, (uint8_t *)send_buf, recv_msg_head_length + temp_recv_msg.data_length);
                                                                }
                                                            }
                                                        });
@@ -471,7 +488,7 @@ void *read_thread(void *arg)
                 {
                     if (conn_itor->first != msg_t->send_guid)
                     {
-                        net_info.send_msg(conn_itor->second, (uint8_t *)send_buf, send_index, ev, epfd);
+                        net_info.send_msg(conn_itor->second, (uint8_t *)send_buf, recv_msg_head_length + temp_recv_msg.data_length);
                     }
                 }
             }
@@ -481,7 +498,7 @@ void *read_thread(void *arg)
                 {
                     if (it.first == msg_t->send_guid)
                         continue;
-                    net_info.send_msg(it.second, (uint8_t *)send_buf, send_index, ev, epfd);
+                    net_info.send_msg(it.second, (uint8_t *)send_buf, recv_msg_head_length + temp_recv_msg.data_length);
                 }
             }
             net_info.msg_list.pop_front();

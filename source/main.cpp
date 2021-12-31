@@ -1,7 +1,7 @@
 #include "common.h"
 #include "struct_def.h"
 
-common_info comm;
+struct common_info comm;
 
 static void sig_pro(int32_t signum)
 {

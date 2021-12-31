@@ -1,0 +1,27 @@
+一.聊天通信协议
+4字节 发送者guid，填 0 则表示是注册，请求获取guid
+2字节 消息类型
+4字节 数据长度N，不包括包头
+N字节 数据区
+
+guid(4字节) type(2字节) length(4字节) data(length字节)
+
+type：
+    enum msg_type : uint16_t
+    {
+        ACOUNT_ADD = 00,    //新增账号
+        ACOUNT_MODIFY = 01, //修改账号
+        ACOUNT_DELETE = 02, //删除账号
+        GROUP_ADD = 30,     //新增群组
+        GROUP_MODIFY = 31,  //修改群组
+        GROUP_DELETE = 32,  //删除群组
+        // GROUP_JOIN = 33,  //加入群组 //加在修改群组下
+        // GROUP_LEAVE = 34,  //离开群组 //加在修改群组下
+        // GROUP_MDIFY_PERMISSION = 35,  //修改群组成员权限 //加在修改群组下
+        // GROUP_ADD_MANAGER = 36,  //增加群组管理员 //加在修改群组下
+        // MSG_LIST_REQ = 37,  //删除群组管理员 //加在修改群组下
+        USER_INFO_REQ = 60, //请求联系人信息
+        MSG_SEND = 90,      //发送消息
+        MSG_LIST_REQ = 91,  //请求聊天记录
+        RECV_MST_TYPE_MAX
+    };

@@ -24,13 +24,24 @@ bool GroupInfo::from_data(uint32_t global_guid, const uint8_t *data, uint32_t da
     index += sizeof(member_count);
     memcpy_uint32(learder_guid, data + index);
     index += sizeof(learder_guid);
+    struct group_member_info info;
+    uint32_t info_length = info.length();
+    if (member_count * info_length > data_len - index)
+    {
+        return false;
+    }
+    for (int32_t i = 0; i < member_count; ++i)
+    {
+        info.from_data(data + index, data_len - index);
+        index += info_length;
+    }
     return true;
 }
 
 uint32_t GroupInfo::to_data(uint8_t *data, const uint32_t data_len)
 {
     uint32_t index = 0;
-    if (data_len < length())
+    if (!data || data_len < length())
     {
         return index;
     }
@@ -40,6 +51,17 @@ uint32_t GroupInfo::to_data(uint8_t *data, const uint32_t data_len)
     index += sizeof(member_count);
     memcpy(data + index, &learder_guid, sizeof(learder_guid));
     index += sizeof(learder_guid);
+    struct group_member_info info;
+    if (member_count * info.length() > data_len - index)
+    {
+        index = 0;
+        return index;
+    }
+    //TODO:这种写法有风险，group_member_info内若有不定长的数据则会出错，有待改进
+    for (int32_t i = 0; i < member_count; ++i)
+    {
+        index += info.to_data(data + index, data_len - index);
+    }
     return index;
 }
 
@@ -48,6 +70,8 @@ uint32_t GroupInfo::length()
     uint32_t length = sizeof(group_guid);
     length += sizeof(member_count);
     length += sizeof(learder_guid);
+    struct group_member_info info;
+    length += member_count * info.length();
     return length;
 }
 
@@ -66,8 +90,10 @@ std::shared_ptr<group_member_info> GroupInfo::get_member_by_guid(uint32_t guid)
     return nullptr;
 }
 
-bool GroupInfo::on_add_member(uint32_t operator_guid, uint32_t user_guid)
+bool GroupInfo::on_add_member(uint32_t operator_guid, uint32_t user_guid, uint32_t icon_guid, uint8_t *user_name)
 {
+    if (!user_name)
+        return false;
     auto manager_itor = managers_map.find(operator_guid);
     if (manager_itor == managers_map.end())
     {
@@ -81,17 +107,25 @@ bool GroupInfo::on_add_member(uint32_t operator_guid, uint32_t user_guid)
     std::shared_ptr<group_member_info> group_info = std::make_shared<group_member_info>();
     group_info->group_guid = group_guid;
     group_info->user_guid = user_guid;
+    group_info->icon_guid = icon_guid;
+    //TODO:msg_count未使用
     group_info->msg_count = 0;
     group_info->permissions = group_permission::SEND_TO_ALL;
+    group_info->job = group_member_info::GROUP_JOB_MEMBER;
+    memcpy(group_info->name, user_name, sizeof(user_name));
     members_list.push_back(group_info);
-    if (operator_guid == 0)
+    if (operator_guid == 0 && member_count == 0)
     {
         //系统添加，默认为创建群组，添加第一个成员，即组长
         learder_guid = user_guid;
         managers_map[user_guid] = std::prev(members_list.end());
+        group_info->job = group_member_info::GROUP_JOB_LEADER;
+        ++member_count;
+        return true;
     }
     members_map[user_guid] = std::prev(members_list.end());
     ++member_count;
+    return true;
 }
 
 bool GroupInfo::on_delete_member(uint32_t operator_guid, uint32_t user_guid)
@@ -141,6 +175,9 @@ bool GroupInfo::on_add_manager(uint32_t operator_guid, uint32_t user_guid)
         return false;
     }
     managers_map[user_guid] = members_map[user_guid];
+    std::shared_ptr<group_member_info> &info = *managers_map[user_guid];
+    if (info != nullptr)
+        info->job = group_member_info::GROUP_JOB_MANAGER;
     members_map.erase(member_itor);
 }
 
@@ -161,6 +198,9 @@ bool GroupInfo::on_delete_manager(uint32_t operator_guid, uint32_t user_guid)
         return false;
     }
     members_map[user_guid] = managers_map[user_guid];
+    std::shared_ptr<group_member_info> &info = *members_map[user_guid];
+    if (info != nullptr)
+        info->job = group_member_info::GROUP_JOB_MEMBER;
     managers_map.erase(manager_itor);
 }
 
