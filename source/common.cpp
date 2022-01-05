@@ -25,9 +25,10 @@ bool get_is_big_data()
 
 uint32_t get_time_sec()
 {
-    struct timeval now;
-    gettimeofday(&now, NULL);
-    return (uint32_t)now.tv_sec;
+    // struct timeval now;
+    // gettimeofday(&now, NULL);
+    // return (uint32_t)now.tv_sec;
+    return (uint32_t)time(0);
 }
 
 void write_log(log_level level, uint8_t *msg)
@@ -37,6 +38,7 @@ void write_log(log_level level, uint8_t *msg)
     std::cout << msg << std::endl;
 }
 
+#ifndef WIN32
 void setnonblocking(int32_t sock)
 {
     int32_t opts;
@@ -64,3 +66,4 @@ void setreuseaddr(int32_t sock)
         exit(1);
     }
 }
+#endif

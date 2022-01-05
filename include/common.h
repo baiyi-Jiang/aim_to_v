@@ -1,5 +1,5 @@
 #pragma once
-#include <algorithm>
+#ifndef WIN32
 #include <pthread.h>
 #include <semaphore.h>
 #include <time.h>
@@ -7,23 +7,28 @@
 #include <sys/shm.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <memory.h>
-#include <cstdio>
 #include <unistd.h>
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <cstdlib>
 #include <cctype>
-#include <sstream>
 #include <utility>
-#include <stdexcept>
 #include <sys/socket.h>
 #include <sys/epoll.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <iostream>
 #include <signal.h>
+#else
+//
+#endif
+#include <stdint.h>
+#include <algorithm>
+#include <memory.h>
+#include <cstdio>
+#include <cstdlib>
+#include <sstream>
+#include <iostream>
+#include <stdexcept>
 
 enum log_level : uint8_t
 {
@@ -43,9 +48,11 @@ bool get_is_big_data();
 
 void write_log(log_level level, uint8_t *msg);
 
+#ifndef WIN32
 void setnonblocking(int32_t sock);
 
 void setreuseaddr(int32_t sock);
+#endif
 
 template <class U>
 uint32_t memcpy_u(U &src_num, const uint8_t *data)
@@ -81,6 +88,8 @@ uint32_t memcpy_u(uint8_t *data, U &src_num)
     return sizeof(U);
 }
 
+#ifndef WIN32
 void *read_thread(void *arg);
 
 void *accept_thread(void *arg);
+#endif
