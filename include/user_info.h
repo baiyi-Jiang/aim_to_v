@@ -42,7 +42,7 @@ public:
     std::string get_custom() { return std::string((char *)custom, sizeof(custom)); }
     bool on_add_msg(std::shared_ptr<msg_info> &msg);
     bool on_delete_msg(uint32_t recv_guid, uint32_t msg_num);
-    bool clear_msg(uint32_t recv_guid, uint32_t msg_num);
+    bool clear_msg(uint32_t recv_guid);
     bool on_join_group(uint32_t guid);
     bool on_leave_group(uint32_t guid);
     bool on_update_group_active(uint32_t guid);

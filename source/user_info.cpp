@@ -181,7 +181,7 @@ bool UserInfo::on_delete_msg(uint32_t recv_guid, uint32_t msg_num)
     return true;
 }
 
-bool UserInfo::clear_msg(uint32_t recv_guid, uint32_t msg_num)
+bool UserInfo::clear_msg(uint32_t recv_guid)
 {
     auto msg_list_itor = msg_map.find(recv_guid);
     if (msg_list_itor == msg_map.end())

@@ -20,7 +20,7 @@ public:
     bool on_delete_member(uint32_t operator_guid, uint32_t user_guid);
     bool on_add_manager(uint32_t operator_guid, uint32_t user_guid);
     bool on_delete_manager(uint32_t operator_guid, uint32_t user_guid);
-    bool on_change_permissions(uint32_t operator_guid, uint32_t user_guid, uint16_t permissions);
+    bool on_change_permissions(uint32_t operator_guid, uint32_t user_guid, uint8_t permissions);
     bool traverse_managers(const std::function<bool(std::shared_ptr<group_member_info> &)> &func);
     bool traverse_normal_members(const std::function<bool(std::shared_ptr<group_member_info> &)> &func);
     bool traverse_all_members(const std::function<bool(std::shared_ptr<group_member_info> &)> &func);

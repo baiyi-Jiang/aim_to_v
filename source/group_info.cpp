@@ -200,7 +200,7 @@ bool GroupInfo::on_delete_manager(uint32_t operator_guid, uint32_t user_guid)
     return true;
 }
 
-bool GroupInfo::on_change_permissions(uint32_t operator_guid, uint32_t user_guid, uint16_t permissions)
+bool GroupInfo::on_change_permissions(uint32_t operator_guid, uint32_t user_guid, uint8_t permissions)
 {
     auto operator_manager_itor = managers_map.find(operator_guid);
     if (operator_manager_itor == managers_map.end())
@@ -210,7 +210,7 @@ bool GroupInfo::on_change_permissions(uint32_t operator_guid, uint32_t user_guid
     std::shared_ptr<group_member_info> &operator_member = *operator_manager_itor->second;
     if (operator_member.use_count() > 0)
     {
-        uint16_t operator_permission = operator_member->permissions;
+        uint8_t operator_permission = operator_member->permissions;
         if (operator_permission > permissions)
         {
             return false;

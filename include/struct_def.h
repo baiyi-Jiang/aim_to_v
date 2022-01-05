@@ -96,7 +96,7 @@ struct msg_info
         index += memcpy_u(data + index, msg_type);
         index += memcpy_u(data + index, keep1);
         memcpy(data + index, msg.c_str(), msg.size());
-        index += msg.size();
+        index += (uint32_t)msg.size();
         return index;
     }
     uint32_t send_guid;  //发送者guid
