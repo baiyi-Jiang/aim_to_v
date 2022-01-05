@@ -1,6 +1,7 @@
 #pragma once
 #include "struct_def.h"
 #include <memory>
+#include <functional>
 
 class GroupInfo
 {

@@ -109,6 +109,16 @@ struct msg_info
     std::string msg;     //消息
 };
 
+struct user_status
+{
+    enum status : uint8_t
+    {
+        STATUS_ON_LINE = 0x00,  //在线
+        STATUS_OFF_LINE = 0x01, //离线
+        STATUS_MAX
+    };
+};
+
 struct group_permission
 {
     enum permission : uint8_t
@@ -205,14 +215,48 @@ struct recv_msg_type
         GROUP_INFO_REQ = 61,         //请求群组信息
         MSG_SEND = 90,               //发送消息
         MSG_LIST_REQ = 91,           //请求聊天记录
+        LINE_ON = 120,               //用户上线
+        LINE_OFF = 121,              //用户下线
         SERVER_MSG_TYPE_MAX = 10000, //服务端消息类型限制
-        
-        CLIENT_USER_INFO_ACK = 10060,  //回复联系人信息
-        CLIENT_GROUP_INFO_ACK = 10061, //回复群组信息
-        CLIENT_MSG_SEND = 10090,       //发送消息
-        CLIENT_MSG_LIST_ACK = 10091,   //回复聊天记录
+
+        CLIENT_ACOUNT_ADD_ACK = 10000,    //新增账号回包
+        CLIENT_ACOUNT_MODIFY_ACK = 10001, //修改账号回包
+        CLIENT_ACOUNT_DELETE_ACK = 10002, //删除账号回包
+        CLIENT_GROUP_ADD_ACK = 10030,     //新增群组回包
+        CLIENT_GROUP_MODIFY_ACK = 10031,  //修改群组回包
+        CLIENT_GROUP_DELETE_ACK = 10032,  //删除群组回包
+        CLIENT_USER_INFO_ACK = 10060,     //回复联系人信息
+        CLIENT_GROUP_INFO_ACK = 10061,    //回复群组信息
+        CLIENT_MSG_SEND = 10090,          //发送消息
+        CLIENT_MSG_LIST_ACK = 10091,      //回复聊天记录
         RECV_MSG_TYPE_MAX
     };
+};
+
+struct acount_delete
+{
+    bool from_data(const uint8_t *data, const uint32_t len)
+    {
+        if (!data || len < length())
+            return false;
+        uint32_t index = 0;
+        index += memcpy_u(user_guid, data + index);
+        return true;
+    }
+    uint32_t length()
+    {
+        uint32_t length = sizeof(user_guid);
+        return length;
+    }
+    uint32_t to_data(uint8_t *data, const uint32_t len)
+    {
+        uint32_t index = 0;
+        if (!data || len < length())
+            return index;
+        index += memcpy_u(data + index, user_guid);
+        return index;
+    }
+    uint32_t user_guid;
 };
 
 struct user_info_req

@@ -45,6 +45,11 @@ public:
     bool clear_msg(uint32_t recv_guid, uint32_t msg_num);
     bool on_join_group(uint32_t guid);
     bool on_leave_group(uint32_t guid);
+    bool on_update_group_active(uint32_t guid);
+    bool on_add_friend(uint32_t guid);
+    bool on_delete_friend(uint32_t guid);
+    bool on_update_friend_active(uint32_t guid);
+    bool on_set_online_status(uint8_t status);
     //遍历聊天记录链表并进行某种操作
     bool traverse_list(uint32_t guid, const std::function<bool(std::shared_ptr<msg_info> &)> &func);
 
@@ -56,7 +61,7 @@ private:
     uint32_t last_logout_time = 0;              //上次登出时间
     uint8_t age = 0;                            //年龄
     uint8_t sex = 0;                            //性别
-    uint8_t keep1 = 0;                          //保留字段1
+    uint8_t online_status = 0;                  //在线状态 //user_status
     uint8_t keep2 = 0;                          //保留字段2
     uint8_t name[32] = {0};                     //名称
     uint8_t phone[16] = {0};                    //电话号码
@@ -66,7 +71,8 @@ private:
     uint8_t city[32] = {0};                     //城市
     uint8_t passwd[32] = {0};                   //密码<TODO：增加加密>l
     uint8_t custom[64] = {0};                   //自定义变量
-    std::vector<uint32_t> join_groups;          //加入的群组guid
+    std::map<uint32_t, uint32_t> join_groups;   //加入的群组guid,以及群组最后活跃时间
+    std::map<uint32_t, uint32_t> friends;       //好友guid，以及最后聊天时间
     std::map<uint32_t, MSG_LIST *> msg_map;     //聊天记录索引
     std::map<uint32_t, uint32_t> msg_map_limit; //消息队列最多保持user_msgs_max_len条
 };

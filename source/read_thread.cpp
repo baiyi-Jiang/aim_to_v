@@ -27,10 +27,12 @@ bool NetInfo::parse_msg(const uint8_t *data, uint32_t len, int32_t fd, struct re
     }
     case recv_msg_type::ACOUNT_MODIFY:
     {
+        on_acount_modify(data + msg_head_length, msg.data_length, fd);
         break;
     }
     case recv_msg_type::ACOUNT_DELETE:
     {
+        on_acount_delete(data + msg_head_length, msg.data_length, fd);
         break;
     }
     case recv_msg_type::GROUP_ADD:
@@ -77,40 +79,84 @@ void NetInfo::on_acount_add(const uint8_t *data, uint32_t len, int32_t fd)
     UserInfo user;
     if (!user.from_data(global_user_guid, data, len))
         return;
+    auto user_itor = users_map.find(user.get_user_guid());
+    if (user_itor != users_map.end())
+    {
+        users.erase(user_itor->second);
+        users_map.erase(user_itor);
+    }
+    user.on_set_online_status(user_status::STATUS_ON_LINE);
     users.push_back(user);
     users_map[user.get_user_guid()] = std::prev(users.end());
     user_conn_map[user.get_user_guid()] = fd;
     conn_user_map[fd] = user.get_user_guid();
+    //TODO:ACK暂未添加
 }
 
-void NetInfo::on_acount_modify()
+void NetInfo::on_acount_modify(const uint8_t *data, uint32_t len, int32_t fd)
 {
-    //
+    UserInfo user;
+    if (!user.from_data(global_user_guid, data, len))
+        return;
+    auto user_itor = users_map.find(user.get_user_guid());
+    if (user_itor != users_map.end())
+    {
+        users.erase(user_itor->second);
+        users_map.erase(user_itor);
+        users.push_back(user);
+        users_map[user.get_user_guid()] = std::prev(users.end());
+    }
+    //TODO:ACK暂未添加
 }
 
-void NetInfo::on_acount_delete()
+void NetInfo::on_acount_delete(const uint8_t *data, uint32_t len, int32_t fd)
 {
-    //
+    struct acount_delete ad;
+    if (!ad.from_data(data, len))
+        return;
+    auto user_itor = users_map.find(ad.user_guid);
+    if (user_itor != users_map.end())
+    {
+        users.erase(user_itor->second);
+        users_map.erase(user_itor);
+    }
+    conn_user_map.erase(user_conn_map[ad.user_guid]);
+    user_conn_map.erase(ad.user_guid);
+    //TODO:ACK暂未添加
 }
 
 void NetInfo::on_group_add()
 {
-    //
+    //TODO:ACK暂未添加
 }
 
 void NetInfo::on_group_modify()
 {
-    //
+    //TODO:ACK暂未添加
 }
 
 void NetInfo::on_group_delete()
 {
-    //
+    //TODO:ACK暂未添加
 }
 
 void NetInfo::on_user_info_req(uint32_t guid, const uint8_t *data, uint32_t len, int32_t fd)
 {
-    //
+    struct user_info_req req;
+    if (!req.from_data(data, len))
+        return;
+    auto itor = users_map.find(req.user_guid);
+    if (itor != users_map.end())
+    {
+        struct recv_msg tmp_msg;
+        tmp_msg.guid = 0;
+        tmp_msg.type = recv_msg_type::CLIENT_USER_INFO_ACK;
+        tmp_msg.data_length = itor->second->to_data((uint8_t *)send_buf + tmp_msg.length(), MAXBUFSIZE - tmp_msg.length());
+        if (tmp_msg.data_length && tmp_msg.to_head((uint8_t *)send_buf, MAXBUFSIZE))
+        {
+            send_msg(fd, (uint8_t *)send_buf, tmp_msg.data_length + tmp_msg.length());
+        }
+    }
 }
 
 void NetInfo::on_group_info_req(uint32_t guid, const uint8_t *data, uint32_t len, int32_t fd)
@@ -210,9 +256,9 @@ void *read_thread(void *arg)
     int32_t &epfd = net_info.epfd;        //连接用的epoll
     struct epoll_event &ev = net_info.ev; //事件临时变量
     char *send_buf = net_info.send_buf;   //发送缓冲区
-    int32_t ret = 0;                          //临时变量,存放返回值
-    int32_t i = 0;                            //临时变量,轮询数组用
-    int32_t nfds = 0;                         //临时变量,有多少个socket有事件
+    int32_t ret = 0;                      //临时变量,存放返回值
+    int32_t i = 0;                        //临时变量,轮询数组用
+    int32_t nfds = 0;                     //临时变量,有多少个socket有事件
     const int32_t MAXEVENTS = 1024;       //最大事件数
     struct epoll_event events[MAXEVENTS]; //监听事件数组
     int32_t iBackStoreSize = 1024;
@@ -220,7 +266,7 @@ void *read_thread(void *arg)
     int32_t buf_index = 0;
     struct recv_msg temp_recv_msg;
     const uint32_t recv_msg_head_length = temp_recv_msg.length();
-    int32_t nread = 0;                                                 //读到的字节数
+    int32_t nread = 0;                                             //读到的字节数
     struct ipport tIpPort;                                         //地址端口信息
     struct peerinfo tPeerInfo;                                     //对方连接信息
     std::map<int32_t, struct ipport> mIpPort;                      //socket对应的对方地址端口信息
@@ -288,6 +334,11 @@ void *read_thread(void *arg)
                         write_log(LOG_INFO, (uint8_t *)log_buf);
                         close(msg.fd);
                         epoll_ctl(epfd, EPOLL_CTL_DEL, msg.fd, &ev);
+                        auto user_itor = net_info.users_map.find(net_info.conn_user_map[msg.fd]);
+                        if (user_itor != net_info.users_map.end())
+                        {
+                            user_itor->second->on_set_online_status(user_status::STATUS_OFF_LINE);
+                        }
                         net_info.user_conn_map.erase(net_info.conn_user_map[msg.fd]);
                         net_info.conn_user_map.erase(msg.fd);
                         itIpPort = mIpPort.find(msg.fd);
@@ -472,8 +523,24 @@ void *read_thread(void *arg)
                 auto itor = net_info.groups_map.find(msg_t->recv_guid);
                 if (itor != net_info.groups_map.end())
                 {
+                    auto sender = itor->second->get_member_by_guid(msg_t->send_guid);
+                    if (sender->permissions > group_permission::SEND_MSG)
+                    {
+                        if ((sender->permissions == group_permission::SEND_MSG_COUNT_LIMIT_50 && sender->msg_count > 50) ||
+                            (sender->permissions == group_permission::SEND_MSG_COUNT_LIMIT_10 && sender->msg_count > 10) ||
+                            sender->permissions == group_permission::CANT_SEND_MSG)
+                        {
+                            //TODO:发送提示
+                            net_info.msg_list.pop_front();
+                            continue;
+                        }
+                    }
                     itor->second->traverse_all_members([&](std::shared_ptr<group_member_info> &info) -> bool
                                                        {
+                                                           auto user_itor = net_info.users_map.find(info->user_guid);
+                                                           if (user_itor == net_info.users_map.end())
+                                                               return false;
+                                                           user_itor->second->on_update_group_active(msg_t->recv_guid);
                                                            auto conn_itor = net_info.user_conn_map.find(info->user_guid);
                                                            if (conn_itor != net_info.user_conn_map.end())
                                                            {
@@ -481,13 +548,34 @@ void *read_thread(void *arg)
                                                                {
                                                                    net_info.send_msg(conn_itor->second, (uint8_t *)send_buf, recv_msg_head_length + temp_recv_msg.data_length);
                                                                }
+                                                               else
+                                                               {
+                                                                   ++info->msg_count;
+                                                               }
                                                            }
                                                            return true;
                                                        });
+                    itor->second->on_add_msg(msg_t);
                 }
             }
             else if (msg_t->msg_type == msg_info::MSG_TYPE_USER)
             {
+                auto user_itor = net_info.users_map.find(msg_t->recv_guid);
+                if (user_itor == net_info.users_map.end())
+                {
+                    net_info.msg_list.pop_front();
+                    continue;
+                }
+                user_itor->second->on_update_friend_active(msg_t->send_guid);
+                user_itor->second->on_add_msg(msg_t);
+                auto send_user_itor = net_info.users_map.find(msg_t->send_guid);
+                if (send_user_itor == net_info.users_map.end())
+                {
+                    net_info.msg_list.pop_front();
+                    continue;
+                }
+                send_user_itor->second->on_update_friend_active(msg_t->recv_guid);
+                send_user_itor->second->on_add_msg(msg_t); 
                 auto conn_itor = net_info.user_conn_map.find(msg_t->recv_guid);
                 if (conn_itor != net_info.user_conn_map.end())
                 {
@@ -502,7 +590,10 @@ void *read_thread(void *arg)
                 for (const auto &it : net_info.user_conn_map)
                 {
                     if (it.first == msg_t->send_guid)
+                    {
+                        net_info.msg_list.pop_front();
                         continue;
+                    }
                     net_info.send_msg(it.second, (uint8_t *)send_buf, recv_msg_head_length + temp_recv_msg.data_length);
                 }
             }

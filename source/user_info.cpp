@@ -40,7 +40,7 @@ bool UserInfo::from_data(uint32_t global_guid, const uint8_t *data, uint32_t dat
         last_logout_time = get_time_sec();
     age = data[index++];
     sex = data[index++];
-    keep1 = data[index++];
+    online_status = data[index++];
     keep2 = data[index++];
     memcpy(name, data + index, sizeof(name));
     index += sizeof(name);
@@ -58,6 +58,7 @@ bool UserInfo::from_data(uint32_t global_guid, const uint8_t *data, uint32_t dat
     index += sizeof(passwd);
     memcpy(custom, data + index, sizeof(custom));
     index += sizeof(custom);
+    return true;
 }
 
 uint32_t UserInfo::length()
@@ -69,7 +70,7 @@ uint32_t UserInfo::length()
     length += sizeof(last_logout_time);
     length += sizeof(age);
     length += sizeof(sex);
-    length += sizeof(keep1);
+    length += sizeof(online_status);
     length += sizeof(keep2);
     length += sizeof(name);
     length += sizeof(phone);
@@ -96,7 +97,7 @@ uint32_t UserInfo::to_data(uint8_t *data, const uint32_t len)
     index += memcpy_u(data + index, last_logout_time);
     index += memcpy_u(data + index, age);
     index += memcpy_u(data + index, sex);
-    index += memcpy_u(data + index, keep1);
+    index += memcpy_u(data + index, online_status);
     index += memcpy_u(data + index, keep2);
     memcpy(data + index, name, sizeof(name));
     index += sizeof(name);
@@ -194,10 +195,10 @@ bool UserInfo::clear_msg(uint32_t recv_guid, uint32_t msg_num)
 
 bool UserInfo::on_join_group(uint32_t guid)
 {
-    auto itor = std::find(join_groups.begin(), join_groups.end(), guid);
+    auto itor = join_groups.find(guid);
     if (itor == join_groups.end())
     {
-        join_groups.push_back(guid);
+        join_groups[guid] = get_time_sec();
         return true;
     }
     return false;
@@ -205,11 +206,61 @@ bool UserInfo::on_join_group(uint32_t guid)
 
 bool UserInfo::on_leave_group(uint32_t guid)
 {
-    auto itor = std::find(join_groups.begin(), join_groups.end(), guid);
+    auto itor = join_groups.find(guid);
     if (itor != join_groups.end())
     {
         join_groups.erase(itor);
         return true;
     }
     return false;
+}
+
+bool UserInfo::on_update_group_active(uint32_t guid)
+{
+    auto itor = join_groups.find(guid);
+    if (itor != join_groups.end())
+    {
+        itor->second = get_time_sec();
+        return true;
+    }
+    return false;
+}
+
+bool UserInfo::on_add_friend(uint32_t guid)
+{
+    auto itor = friends.find(guid);
+    if (itor == friends.end())
+    {
+        friends[guid] = get_time_sec();
+        return true;
+    }
+    return false;
+}
+
+bool UserInfo::on_delete_friend(uint32_t guid)
+{
+    auto itor = friends.find(guid);
+    if (itor != friends.end())
+    {
+        friends.erase(itor);
+        return true;
+    }
+    return false;
+}
+
+bool UserInfo::on_update_friend_active(uint32_t guid)
+{
+    auto itor = friends.find(guid);
+    if (itor != friends.end())
+    {
+        itor->second = get_time_sec();
+        return true;
+    }
+    return false;
+}
+
+bool UserInfo::on_set_online_status(uint8_t status)
+{
+    online_status = status;
+    return true;
 }
