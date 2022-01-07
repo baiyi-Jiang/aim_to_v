@@ -133,6 +133,8 @@ void NetInfo::on_acount_delete(const uint8_t *data, uint32_t len, int32_t fd)
     struct acount_delete ad;
     if (!ad.from_data(data, len))
         return;
+    if (ad.user_guid != conn_user_map[fd])
+        return;
     auto user_itor = users_map.find(ad.user_guid);
     if (user_itor != users_map.end())
     {
