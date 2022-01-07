@@ -41,7 +41,7 @@ bool UserInfo::from_data(uint32_t global_guid, const uint8_t *data, uint32_t dat
     age = data[index++];
     sex = data[index++];
     online_status = data[index++];
-    keep2 = data[index++];
+    owner_groups = data[index++];
     memcpy(name, data + index, sizeof(name));
     index += sizeof(name);
     memcpy(phone, data + index, sizeof(phone));
@@ -71,7 +71,7 @@ uint32_t UserInfo::length()
     length += sizeof(age);
     length += sizeof(sex);
     length += sizeof(online_status);
-    length += sizeof(keep2);
+    length += sizeof(owner_groups);
     length += sizeof(name);
     length += sizeof(phone);
     length += sizeof(qq);
@@ -98,7 +98,7 @@ uint32_t UserInfo::to_data(uint8_t *data, const uint32_t len)
     index += memcpy_u(data + index, age);
     index += memcpy_u(data + index, sex);
     index += memcpy_u(data + index, online_status);
-    index += memcpy_u(data + index, keep2);
+    index += memcpy_u(data + index, owner_groups);
     memcpy(data + index, name, sizeof(name));
     index += sizeof(name);
     memcpy(data + index, phone, sizeof(phone));
@@ -262,5 +262,21 @@ bool UserInfo::on_update_friend_active(uint32_t guid)
 bool UserInfo::on_set_online_status(uint8_t status)
 {
     online_status = status;
+    return true;
+}
+
+bool UserInfo::on_create_group()
+{
+    if (owner_groups > OWN_GROUP_MAX)
+        return false;
+    ++owner_groups;
+    return true;
+}
+
+bool UserInfo::on_delete_group()
+{
+    if (owner_groups == 0)
+        return false;
+    --owner_groups;
     return true;
 }

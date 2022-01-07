@@ -16,7 +16,9 @@ public:
     uint32_t get_member_count() { return member_count; }
     uint32_t get_learder_guid() { return learder_guid; }
     std::shared_ptr<group_member_info> get_member_by_guid(uint32_t guid);
-    bool on_add_member(uint32_t operator_guid, uint32_t user_guid, uint32_t icon_guid, uint8_t* user_name);
+    //创建群组添加成员使用此接口，先填leader_guid
+    //operator_guid填0,创建群组时不能设置管理员
+    bool on_add_member(uint32_t operator_guid, uint32_t user_guid, uint32_t icon_guid, uint8_t *user_name);
     bool on_delete_member(uint32_t operator_guid, uint32_t user_guid);
     bool on_add_manager(uint32_t operator_guid, uint32_t user_guid);
     bool on_delete_manager(uint32_t operator_guid, uint32_t user_guid);
@@ -28,8 +30,9 @@ public:
     bool on_delete_msg(uint32_t operator_guid, uint32_t msg_num);
     bool clear_msg(uint32_t operator_guid);
     bool traverse_msgs(const std::function<bool(std::shared_ptr<msg_info> &)> &func);
+    void set_learder_guid(uint32_t guid) { learder_guid = guid; }
 
-public:
+private:
     uint32_t group_guid = 0;   //组guid
     uint32_t member_count = 0; //成员数量
     uint32_t learder_guid = 0; //组长guid

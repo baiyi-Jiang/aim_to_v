@@ -89,7 +89,7 @@ bool GroupInfo::on_add_member(uint32_t operator_guid, uint32_t user_guid, uint32
     if (!user_name)
         return false;
     auto manager_itor = managers_map.find(operator_guid);
-    if (manager_itor == managers_map.end())
+    if (manager_itor == managers_map.end() && operator_guid != 0)
     {
         return false;
     }
@@ -102,16 +102,13 @@ bool GroupInfo::on_add_member(uint32_t operator_guid, uint32_t user_guid, uint32
     group_info->group_guid = group_guid;
     group_info->user_guid = user_guid;
     group_info->icon_guid = icon_guid;
-    //TODO:msg_count未使用
     group_info->msg_count = 0;
-    group_info->permissions = group_permission::SEND_TO_ALL;
+    group_info->permissions = group_permission::SEND_TO_GROUP;
     group_info->job = group_member_info::GROUP_JOB_MEMBER;
     memcpy(group_info->name, user_name, sizeof(group_info->name));
     members_list.push_back(group_info);
-    if (operator_guid == 0 && member_count == 0)
+    if (operator_guid == 0 && user_guid == learder_guid)
     {
-        //系统添加，默认为创建群组，添加第一个成员，即组长
-        learder_guid = user_guid;
         managers_map[user_guid] = std::prev(members_list.end());
         group_info->job = group_member_info::GROUP_JOB_LEADER;
         ++member_count;

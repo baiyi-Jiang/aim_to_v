@@ -3,6 +3,8 @@
 #include <memory>
 #include <functional>
 
+#define OWN_GROUP_MAX 50
+
 class UserInfo
 {
 public:
@@ -52,6 +54,11 @@ public:
     bool on_set_online_status(uint8_t status);
     //遍历聊天记录链表并进行某种操作
     bool traverse_list(uint32_t guid, const std::function<bool(std::shared_ptr<msg_info> &)> &func);
+    bool on_create_group();
+    bool on_delete_group();
+    bool can_create_group() { return owner_groups < (uint8_t)OWN_GROUP_MAX;}
+    std::map<uint32_t, uint32_t>& get_join_groups(){return join_groups;}
+    std::map<uint32_t, uint32_t>& get_friends(){return friends;}
 
 private:
     uint32_t user_guid = 0;                     //用户GUID
@@ -62,7 +69,7 @@ private:
     uint8_t age = 0;                            //年龄
     uint8_t sex = 0;                            //性别
     uint8_t online_status = 0;                  //在线状态 //user_status
-    uint8_t keep2 = 0;                          //保留字段2
+    uint8_t owner_groups = 0;                   //拥有的群，创建群加一，删群减一
     uint8_t name[32] = {0};                     //名称
     uint8_t phone[16] = {0};                    //电话号码
     uint8_t qq[16] = {0};                       //qq号

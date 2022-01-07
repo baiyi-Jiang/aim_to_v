@@ -351,6 +351,95 @@ struct recv_msg
     uint8_t *data;
 };
 
+struct group_modify
+{
+    enum ModifyType : uint8_t
+    {
+        MEMBER_ADD = 0x00,
+        MEMBER_DELETE = 0x01,
+        MEMBER_SET_PERMISSION = 0x02,
+        MANAGER_ADD = 0x03,
+        MANAGER_DELETE = 0x04,
+        ModifyTypeMAX
+    };
+    bool from_data(const uint8_t *data, const uint32_t len)
+    {
+        if (!data || len < length())
+            return false;
+        uint32_t index = 0;
+        index += memcpy_u(group_guid, data + index);
+        index += memcpy_u(operate_guid, data + index);
+        index += memcpy_u(target_guid, data + index);
+        index += memcpy_u(opreadte_type, data + index);
+        index += memcpy_u(permission, data + index);
+        index += memcpy_u(keep1, data + index);
+        index += memcpy_u(keep2, data + index);
+        return true;
+    }
+    uint32_t length()
+    {
+        uint32_t length = sizeof(group_guid);
+        length += sizeof(operate_guid);
+        length += sizeof(target_guid);
+        length += sizeof(opreadte_type);
+        length += sizeof(permission);
+        length += sizeof(keep1);
+        length += sizeof(keep2);
+        return length;
+    }
+    uint32_t to_data(uint8_t *data, const uint32_t len)
+    {
+        uint32_t index = 0;
+        if (!data || len < length())
+            return index;
+        index += memcpy_u(data + index, group_guid);
+        index += memcpy_u(data + index, operate_guid);
+        index += memcpy_u(data + index, target_guid);
+        index += memcpy_u(data + index, opreadte_type);
+        index += memcpy_u(data + index, permission);
+        index += memcpy_u(data + index, keep1);
+        index += memcpy_u(data + index, keep2);
+        return index;
+    }
+    uint32_t group_guid;
+    uint32_t operate_guid;
+    uint32_t target_guid;
+    uint8_t opreadte_type; //ModifyType
+    uint8_t permission;
+    uint8_t keep1;
+    uint8_t keep2;
+};
+
+struct group_delete
+{
+    bool from_data(const uint8_t *data, const uint32_t len)
+    {
+        if (!data || len < length())
+            return false;
+        uint32_t index = 0;
+        index += memcpy_u(group_guid, data + index);
+        index += memcpy_u(operate_guid, data + index);
+        return true;
+    }
+    uint32_t length()
+    {
+        uint32_t length = sizeof(group_guid);
+        length += sizeof(operate_guid);
+        return length;
+    }
+    uint32_t to_data(uint8_t *data, const uint32_t len)
+    {
+        uint32_t index = 0;
+        if (!data || len < length())
+            return index;
+        index += memcpy_u(data + index, group_guid);
+        index += memcpy_u(data + index, operate_guid);
+        return index;
+    }
+    uint32_t group_guid;
+    uint32_t operate_guid;
+};
+
 //全局运行信息
 struct common_info
 {

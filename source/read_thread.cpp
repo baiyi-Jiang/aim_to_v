@@ -37,29 +37,32 @@ bool NetInfo::parse_msg(const uint8_t *data, uint32_t len, int32_t fd, struct re
     }
     case recv_msg_type::GROUP_ADD:
     {
+        on_group_add(data + msg_head_length, msg.data_length, fd);
         break;
     }
     case recv_msg_type::GROUP_MODIFY:
     {
+        on_group_modify(data + msg_head_length, msg.data_length, fd);
         break;
     }
     case recv_msg_type::GROUP_DELETE:
     {
+        on_group_delete(data + msg_head_length, msg.data_length, fd);
         break;
     }
     case recv_msg_type::USER_INFO_REQ:
     {
-        on_user_info_req(msg.guid, data + msg_head_length, len, fd);
+        on_user_info_req(msg.guid, data + msg_head_length, msg.data_length, fd);
         break;
     }
     case recv_msg_type::GROUP_INFO_REQ:
     {
-        on_group_info_req(msg.guid, data + msg_head_length, len, fd);
+        on_group_info_req(msg.guid, data + msg_head_length, msg.data_length, fd);
         break;
     }
     case recv_msg_type::MSG_SEND:
     {
-        on_msg_send(msg.guid, data + msg_head_length, len, fd);
+        on_msg_send(msg.guid, data + msg_head_length, msg.data_length, fd);
         break;
     }
     case recv_msg_type::MSG_LIST_REQ:
@@ -86,10 +89,11 @@ void NetInfo::on_acount_add(const uint8_t *data, uint32_t len, int32_t fd)
         users_map.erase(user_itor);
     }
     user.on_set_online_status(user_status::STATUS_ON_LINE);
-    users.push_back(user);
+    users.emplace_back(user);
     users_map[user.get_user_guid()] = std::prev(users.end());
     user_conn_map[user.get_user_guid()] = fd;
     conn_user_map[fd] = user.get_user_guid();
+    ++global_user_guid;
     //TODO:ACK暂未添加
 }
 
@@ -98,12 +102,27 @@ void NetInfo::on_acount_modify(const uint8_t *data, uint32_t len, int32_t fd)
     UserInfo user;
     if (!user.from_data(global_user_guid, data, len))
         return;
+    if (user.get_user_guid() == global_user_guid + 1)
+    {
+        return;
+    }
     auto user_itor = users_map.find(user.get_user_guid());
     if (user_itor != users_map.end())
     {
+        std::map<uint32_t, uint32_t> &temp_groups = user.get_join_groups();
+        for (const auto &group : temp_groups)
+        {
+            auto group_itor = groups_map.find(group.second);
+            if (group_itor != groups_map.end())
+            {
+                auto member = group_itor->second->get_member_by_guid(user.get_user_guid());
+                member->icon_guid = user.get_icon_guid();
+                memcpy(member->name, user.get_name().c_str(), sizeof(member->name));
+            }
+        }
         users.erase(user_itor->second);
         users_map.erase(user_itor);
-        users.push_back(user);
+        users.emplace_back(user);
         users_map[user.get_user_guid()] = std::prev(users.end());
     }
     //TODO:ACK暂未添加
@@ -117,6 +136,25 @@ void NetInfo::on_acount_delete(const uint8_t *data, uint32_t len, int32_t fd)
     auto user_itor = users_map.find(ad.user_guid);
     if (user_itor != users_map.end())
     {
+        std::map<uint32_t, uint32_t> &temp_groups = user_itor->second->get_join_groups();
+        for (const auto &group : temp_groups)
+        {
+            auto group_itor = groups_map.find(group.first);
+            if (group_itor != groups_map.end())
+            {
+                if (!group_itor->second->on_delete_manager(group_itor->second->get_learder_guid(), user_itor->second->get_user_guid()))
+                    group_itor->second->on_delete_member(group_itor->second->get_learder_guid(), user_itor->second->get_user_guid());
+            }
+        }
+        std::map<uint32_t, uint32_t> &temp_friends = user_itor->second->get_friends();
+        for (const auto &friend_it : temp_friends)
+        {
+            auto friend_itor = users_map.find(friend_it.first);
+            if (friend_itor != users_map.end())
+            {
+                friend_itor->second->on_delete_friend(user_itor->second->get_user_guid());
+            }
+        }
         users.erase(user_itor->second);
         users_map.erase(user_itor);
     }
@@ -125,18 +163,130 @@ void NetInfo::on_acount_delete(const uint8_t *data, uint32_t len, int32_t fd)
     //TODO:ACK暂未添加
 }
 
-void NetInfo::on_group_add()
+void NetInfo::on_group_add(const uint8_t *data, uint32_t len, int32_t fd)
 {
+    GroupInfo info;
+    if (!info.from_data(global_group_guid, data, len))
+        return;
+    auto operate_itor = users_map.find(info.get_learder_guid());
+    if (operate_itor == users_map.end())
+    {
+        return;
+    }
+    if (!operate_itor->second->can_create_group())
+    {
+        return;
+    }
+    info.traverse_all_members([&](std::shared_ptr<group_member_info> &member) -> bool
+                              {
+                                  auto user_itor = users_map.find(member->user_guid);
+                                  if (user_itor == users_map.end())
+                                  {
+                                      return false;
+                                  }
+                                  member->group_guid = info.get_group_guid();
+                                  member->icon_guid = user_itor->second->get_icon_guid();
+                                  member->msg_count = 0;
+                                  member->permissions = group_permission::SEND_TO_GROUP;
+                                  memcpy(member->name, user_itor->second->get_name().c_str(), sizeof(member->name));
+                                  if (info.get_learder_guid() == member->user_guid)
+                                      member->job = group_member_info::GROUP_JOB_LEADER;
+                                  else
+                                      member->job = group_member_info::GROUP_JOB_MEMBER;
+                                  user_itor->second->on_join_group(member->group_guid);
+                                  return true;
+                              });
+    groups.emplace_back(info);
+    groups_map[info.get_group_guid()] = std::prev(groups.end());
+    operate_itor->second->on_create_group();
     //TODO:ACK暂未添加
 }
 
-void NetInfo::on_group_modify()
+void NetInfo::on_group_modify(const uint8_t *data, uint32_t len, int32_t fd)
 {
+    struct group_modify gm;
+    if (!gm.from_data(data, len))
+        return;
+    if (gm.opreadte_type > group_modify::ModifyTypeMAX)
+        return;
+    auto group_itor = groups_map.find(gm.group_guid);
+    if (group_itor == groups_map.end())
+        return;
+    auto operate_itor = users_map.find(gm.operate_guid);
+    auto user_itor = users_map.find(gm.target_guid);
+    if (gm.operate_guid != 0 && operate_itor == users_map.end())
+        return;
+    if (gm.target_guid != 0 && user_itor == users_map.end())
+        return;
+    switch (gm.opreadte_type)
+    {
+    case group_modify::MEMBER_ADD:
+    {
+        if (gm.operate_guid == 0 || gm.target_guid == 0)
+            break;
+        if (group_itor->second->on_add_member(gm.operate_guid, gm.target_guid, user_itor->second->get_icon_guid(), (uint8_t *)user_itor->second->get_name().c_str()))
+            user_itor->second->on_join_group(gm.group_guid);
+        break;
+    }
+    case group_modify::MEMBER_DELETE:
+    {
+        if (gm.operate_guid == 0 || gm.target_guid == 0)
+            break;
+        if (group_itor->second->on_delete_member(gm.operate_guid, gm.target_guid))
+            user_itor->second->on_leave_group(gm.group_guid);
+        break;
+    }
+    case group_modify::MEMBER_SET_PERMISSION:
+    {
+        if (gm.operate_guid == 0 || gm.target_guid == 0)
+            break;
+        group_itor->second->on_change_permissions(gm.operate_guid, gm.target_guid, gm.permission);
+        break;
+    }
+    case group_modify::MANAGER_ADD:
+    {
+        if (gm.operate_guid == 0 || gm.target_guid == 0)
+            break;
+        group_itor->second->on_add_manager(gm.operate_guid, gm.target_guid);
+        break;
+    }
+    case group_modify::MANAGER_DELETE:
+    {
+        if (gm.operate_guid == 0 || gm.target_guid == 0)
+            break;
+        group_itor->second->on_delete_manager(gm.operate_guid, gm.target_guid);
+        break;
+    }
+    default:
+        break;
+    }
     //TODO:ACK暂未添加
 }
 
-void NetInfo::on_group_delete()
+void NetInfo::on_group_delete(const uint8_t *data, uint32_t len, int32_t fd)
 {
+    struct group_delete gd;
+    if (!gd.from_data(data, len))
+        return;
+    auto group_itor = groups_map.find(gd.group_guid);
+    if (group_itor == groups_map.end())
+        return;
+    if (gd.operate_guid != group_itor->second->get_learder_guid())
+        return;
+    auto operate_itor = users_map.find(gd.operate_guid);
+    if (operate_itor == users_map.end())
+        return;
+    group_itor->second->traverse_all_members([&](std::shared_ptr<group_member_info> &member) -> bool
+                                             {
+                                                 auto user_itor = users_map.find(member->user_guid);
+                                                 if (user_itor == users_map.end())
+                                                     return false;
+                                                 user_itor->second->on_leave_group(gd.group_guid);
+                                                 return true;
+                                             });
+    groups.erase(group_itor->second);
+    groups_map.erase(group_itor);
+    operate_itor->second->on_delete_group();
     //TODO:ACK暂未添加
 }
 
@@ -575,7 +725,7 @@ void *read_thread(void *arg)
                     continue;
                 }
                 send_user_itor->second->on_update_friend_active(msg_t->recv_guid);
-                send_user_itor->second->on_add_msg(msg_t); 
+                send_user_itor->second->on_add_msg(msg_t);
                 auto conn_itor = net_info.user_conn_map.find(msg_t->recv_guid);
                 if (conn_itor != net_info.user_conn_map.end())
                 {
