@@ -18,13 +18,13 @@ UserInfo::~UserInfo()
     msg_map_limit.clear();
 }
 
-bool UserInfo::from_data(uint32_t global_guid, const uint8_t *data, uint32_t data_len)
+uint32_t UserInfo::from_data(uint32_t global_guid, const uint8_t *data, uint32_t data_len)
 {
+    int32_t index = 0;
     if (data_len < length())
     {
-        return false;
+        return index;
     }
-    int32_t index = 0;
     index += memcpy_u(user_guid, data + index);
     if (0 == user_guid)
         user_guid = ++global_guid;
@@ -58,7 +58,7 @@ bool UserInfo::from_data(uint32_t global_guid, const uint8_t *data, uint32_t dat
     index += sizeof(passwd);
     memcpy(custom, data + index, sizeof(custom));
     index += sizeof(custom);
-    return true;
+    return index;
 }
 
 uint32_t UserInfo::length()

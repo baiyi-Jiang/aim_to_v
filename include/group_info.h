@@ -9,7 +9,7 @@ public:
     using MEMBER_LIST = std::list<std::shared_ptr<group_member_info>>;
     GroupInfo() {}
     ~GroupInfo();
-    bool from_data(uint32_t global_guid, const uint8_t *data, uint32_t data_len);
+    uint32_t from_data(uint32_t global_guid, const uint8_t *data, uint32_t data_len);
     uint32_t to_data(uint8_t *data, const uint32_t data_len);
     uint32_t length();
     uint32_t get_group_guid() { return group_guid; }

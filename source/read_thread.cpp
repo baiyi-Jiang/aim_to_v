@@ -8,61 +8,62 @@ uint32_t global_user_guid = 0;
 uint32_t global_group_guid = 0;
 uint32_t global_msg_num = 0;
 
-bool NetInfo::parse_msg(const uint8_t *data, uint32_t len, int32_t fd, struct recv_msg &msg)
+uint32_t NetInfo::parse_msg(const uint8_t *data, uint32_t len, int32_t fd, struct recv_msg &msg)
 {
     uint32_t msg_head_length = msg.length();
+    uint32_t index = 0;
     if (msg.type > recv_msg_type::SERVER_MSG_TYPE_MAX)
     {
         char log_buf[256] = {0};
         sprintf(log_buf, "Error, msg type error!");
         write_log(LOG_ERROR, (uint8_t *)log_buf);
-        return false;
+        return index;
     }
     switch (static_cast<recv_msg_type::msg_type>(msg.type))
     {
     case recv_msg_type::ACOUNT_ADD:
     {
-        on_acount_add(data + msg_head_length, msg.data_length, fd);
+        index = on_acount_add(data + msg_head_length, msg.data_length, fd);
         break;
     }
     case recv_msg_type::ACOUNT_MODIFY:
     {
-        on_acount_modify(data + msg_head_length, msg.data_length, fd);
+        index = on_acount_modify(data + msg_head_length, msg.data_length, fd);
         break;
     }
     case recv_msg_type::ACOUNT_DELETE:
     {
-        on_acount_delete(data + msg_head_length, msg.data_length, fd);
+        index = on_acount_delete(data + msg_head_length, msg.data_length, fd);
         break;
     }
     case recv_msg_type::GROUP_ADD:
     {
-        on_group_add(data + msg_head_length, msg.data_length, fd);
+        index = on_group_add(data + msg_head_length, msg.data_length, fd);
         break;
     }
     case recv_msg_type::GROUP_MODIFY:
     {
-        on_group_modify(data + msg_head_length, msg.data_length, fd);
+        index = on_group_modify(data + msg_head_length, msg.data_length, fd);
         break;
     }
     case recv_msg_type::GROUP_DELETE:
     {
-        on_group_delete(data + msg_head_length, msg.data_length, fd);
+        index = on_group_delete(data + msg_head_length, msg.data_length, fd);
         break;
     }
     case recv_msg_type::USER_INFO_REQ:
     {
-        on_user_info_req(msg.guid, data + msg_head_length, msg.data_length, fd);
+        index = on_user_info_req(msg.guid, data + msg_head_length, msg.data_length, fd);
         break;
     }
     case recv_msg_type::GROUP_INFO_REQ:
     {
-        on_group_info_req(msg.guid, data + msg_head_length, msg.data_length, fd);
+        index = on_group_info_req(msg.guid, data + msg_head_length, msg.data_length, fd);
         break;
     }
     case recv_msg_type::MSG_SEND:
     {
-        on_msg_send(msg.guid, data + msg_head_length, msg.data_length, fd);
+        index = on_msg_send(msg.guid, data + msg_head_length, msg.data_length, fd);
         break;
     }
     case recv_msg_type::MSG_LIST_REQ:
@@ -74,14 +75,15 @@ bool NetInfo::parse_msg(const uint8_t *data, uint32_t len, int32_t fd, struct re
         break;
     }
     }
-    return true;
+    return index;
 }
 
-void NetInfo::on_acount_add(const uint8_t *data, uint32_t len, int32_t fd)
+uint32_t NetInfo::on_acount_add(const uint8_t *data, uint32_t len, int32_t fd)
 {
     UserInfo user;
-    if (!user.from_data(global_user_guid, data, len))
-        return;
+    uint32_t index = user.from_data(global_user_guid, data, len);
+    if (!index)
+        return index;
     auto user_itor = users_map.find(user.get_user_guid());
     if (user_itor != users_map.end())
     {
@@ -95,16 +97,18 @@ void NetInfo::on_acount_add(const uint8_t *data, uint32_t len, int32_t fd)
     conn_user_map[fd] = user.get_user_guid();
     ++global_user_guid;
     //TODO:ACK暂未添加
+    return index;
 }
 
-void NetInfo::on_acount_modify(const uint8_t *data, uint32_t len, int32_t fd)
+uint32_t NetInfo::on_acount_modify(const uint8_t *data, uint32_t len, int32_t fd)
 {
     UserInfo user;
-    if (!user.from_data(global_user_guid, data, len))
-        return;
+    uint32_t index = user.from_data(global_user_guid, data, len);
+    if (!index)
+        return index;
     if (user.get_user_guid() == global_user_guid + 1)
     {
-        return;
+        return index;
     }
     auto user_itor = users_map.find(user.get_user_guid());
     if (user_itor != users_map.end())
@@ -126,15 +130,17 @@ void NetInfo::on_acount_modify(const uint8_t *data, uint32_t len, int32_t fd)
         users_map[user.get_user_guid()] = std::prev(users.end());
     }
     //TODO:ACK暂未添加
+    return index;
 }
 
-void NetInfo::on_acount_delete(const uint8_t *data, uint32_t len, int32_t fd)
+uint32_t NetInfo::on_acount_delete(const uint8_t *data, uint32_t len, int32_t fd)
 {
     struct acount_delete ad;
-    if (!ad.from_data(data, len))
-        return;
+    uint32_t index = ad.from_data(data, len);
+    if (!index)
+        return index;
     if (ad.user_guid != conn_user_map[fd])
-        return;
+        return index;
     auto user_itor = users_map.find(ad.user_guid);
     if (user_itor != users_map.end())
     {
@@ -163,21 +169,23 @@ void NetInfo::on_acount_delete(const uint8_t *data, uint32_t len, int32_t fd)
     conn_user_map.erase(user_conn_map[ad.user_guid]);
     user_conn_map.erase(ad.user_guid);
     //TODO:ACK暂未添加
+    return index;
 }
 
-void NetInfo::on_group_add(const uint8_t *data, uint32_t len, int32_t fd)
+uint32_t NetInfo::on_group_add(const uint8_t *data, uint32_t len, int32_t fd)
 {
     GroupInfo info;
-    if (!info.from_data(global_group_guid, data, len))
-        return;
+    uint32_t index = info.from_data(global_group_guid, data, len);
+    if (!index)
+        return index;
     auto operate_itor = users_map.find(info.get_learder_guid());
     if (operate_itor == users_map.end())
     {
-        return;
+        return index;
     }
     if (!operate_itor->second->can_create_group())
     {
-        return;
+        return index;
     }
     info.traverse_all_members([&](std::shared_ptr<group_member_info> &member) -> bool
                               {
@@ -202,24 +210,26 @@ void NetInfo::on_group_add(const uint8_t *data, uint32_t len, int32_t fd)
     groups_map[info.get_group_guid()] = std::prev(groups.end());
     operate_itor->second->on_create_group();
     //TODO:ACK暂未添加
+    return index;
 }
 
-void NetInfo::on_group_modify(const uint8_t *data, uint32_t len, int32_t fd)
+uint32_t NetInfo::on_group_modify(const uint8_t *data, uint32_t len, int32_t fd)
 {
     struct group_modify gm;
-    if (!gm.from_data(data, len))
-        return;
+    uint32_t index = gm.from_data(data, len);
+    if (!index)
+        return index;
     if (gm.opreadte_type > group_modify::ModifyTypeMAX)
-        return;
+        return index;
     auto group_itor = groups_map.find(gm.group_guid);
     if (group_itor == groups_map.end())
-        return;
+        return index;
     auto operate_itor = users_map.find(gm.operate_guid);
     auto user_itor = users_map.find(gm.target_guid);
     if (gm.operate_guid != 0 && operate_itor == users_map.end())
-        return;
+        return index;
     if (gm.target_guid != 0 && user_itor == users_map.end())
-        return;
+        return index;
     switch (gm.opreadte_type)
     {
     case group_modify::MEMBER_ADD:
@@ -263,21 +273,23 @@ void NetInfo::on_group_modify(const uint8_t *data, uint32_t len, int32_t fd)
         break;
     }
     //TODO:ACK暂未添加
+    return index;
 }
 
-void NetInfo::on_group_delete(const uint8_t *data, uint32_t len, int32_t fd)
+uint32_t NetInfo::on_group_delete(const uint8_t *data, uint32_t len, int32_t fd)
 {
     struct group_delete gd;
-    if (!gd.from_data(data, len))
-        return;
+    uint32_t index = gd.from_data(data, len);
+    if (!index)
+        return index;
     auto group_itor = groups_map.find(gd.group_guid);
     if (group_itor == groups_map.end())
-        return;
+        return index;
     if (gd.operate_guid != group_itor->second->get_learder_guid())
-        return;
+        return index;
     auto operate_itor = users_map.find(gd.operate_guid);
     if (operate_itor == users_map.end())
-        return;
+        return index;
     group_itor->second->traverse_all_members([&](std::shared_ptr<group_member_info> &member) -> bool
                                              {
                                                  auto user_itor = users_map.find(member->user_guid);
@@ -290,13 +302,15 @@ void NetInfo::on_group_delete(const uint8_t *data, uint32_t len, int32_t fd)
     groups_map.erase(group_itor);
     operate_itor->second->on_delete_group();
     //TODO:ACK暂未添加
+    return index;
 }
 
-void NetInfo::on_user_info_req(uint32_t guid, const uint8_t *data, uint32_t len, int32_t fd)
+uint32_t NetInfo::on_user_info_req(uint32_t guid, const uint8_t *data, uint32_t len, int32_t fd)
 {
     struct user_info_req req;
-    if (!req.from_data(data, len))
-        return;
+    uint32_t index = req.from_data(data, len);
+    if (!index)
+        return index;
     auto itor = users_map.find(req.user_guid);
     if (itor != users_map.end())
     {
@@ -309,13 +323,15 @@ void NetInfo::on_user_info_req(uint32_t guid, const uint8_t *data, uint32_t len,
             send_msg(fd, (uint8_t *)send_buf, tmp_msg.data_length + tmp_msg.length());
         }
     }
+    return index;
 }
 
-void NetInfo::on_group_info_req(uint32_t guid, const uint8_t *data, uint32_t len, int32_t fd)
+uint32_t NetInfo::on_group_info_req(uint32_t guid, const uint8_t *data, uint32_t len, int32_t fd)
 {
     struct group_info_req req;
-    if (!req.from_data(data, len))
-        return;
+    uint32_t index = req.from_data(data, len);
+    if (!index)
+        return index;
     auto itor = groups_map.find(req.group_guid);
     if (itor != groups_map.end())
     {
@@ -328,13 +344,15 @@ void NetInfo::on_group_info_req(uint32_t guid, const uint8_t *data, uint32_t len
             send_msg(fd, (uint8_t *)send_buf, tmp_msg.data_length + tmp_msg.length());
         }
     }
+    return index;
 }
 
-void NetInfo::on_msg_send(uint32_t guid, const uint8_t *data, uint32_t len, int32_t fd)
+uint32_t NetInfo::on_msg_send(uint32_t guid, const uint8_t *data, uint32_t len, int32_t fd)
 {
     std::shared_ptr<msg_info> msg = std::make_shared<msg_info>();
-    if (!msg->from_data(data, len))
-        return;
+    uint32_t index = msg->from_data(data, len);
+    if (!index)
+        return index;
     msg_list.push_back(msg);
     auto conn_itor = conn_user_map.find(fd);
     if (conn_itor == conn_user_map.end() || conn_itor->second != guid)
@@ -342,11 +360,12 @@ void NetInfo::on_msg_send(uint32_t guid, const uint8_t *data, uint32_t len, int3
         user_conn_map[guid] = fd;
         conn_user_map[fd] = guid;
     }
+    return index;
 }
 
-void NetInfo::on_msg_list_req()
+uint32_t NetInfo::on_msg_list_req()
 {
-    //
+    return 0;
 }
 
 int32_t NetInfo::send_msg(int32_t fd, uint8_t *data, uint32_t len)
@@ -368,12 +387,7 @@ int32_t NetInfo::send_msg(int32_t fd, uint8_t *data, uint32_t len)
             char log_buf[256] = {0};
             sprintf(log_buf, "ReadThread, epoll_ctl fail:%d,errno:%d.", ret, errno);
             write_log(LOG_ERROR, (uint8_t *)log_buf);
-            close(fd);
-        }
-        {
-            char log_buf[256] = {0};
-            sprintf(log_buf, "send msg failed.");
-            write_log(LOG_ERROR, (uint8_t *)log_buf);
+            //close(fd);
         }
     }
     return nsend;
@@ -415,7 +429,7 @@ void *read_thread(void *arg)
     struct epoll_event events[MAXEVENTS]; //监听事件数组
     int32_t iBackStoreSize = 1024;
     char buf[MAXBUFSIZE] = {0};
-    int32_t buf_index = 0;
+    uint32_t buf_index = 0;
     struct recv_msg temp_recv_msg;
     const uint32_t recv_msg_head_length = temp_recv_msg.length();
     int32_t nread = 0;                                             //读到的字节数
@@ -435,6 +449,31 @@ void *read_thread(void *arg)
         write_log(LOG_ERROR, (uint8_t *)log_buf);
         return nullptr;
     }
+    std::function<void(int, int)> func_close = [&](int fd, int error_no)
+    {
+        char log_buf[256] = {0};
+        sprintf(log_buf, "ReadThread, close:%d,errno:%d", fd, error_no);
+        write_log(LOG_INFO, (uint8_t *)log_buf);
+        close(fd);
+        epoll_ctl(epfd, EPOLL_CTL_DEL, fd, &ev);
+        auto user_itor = net_info.users_map.find(net_info.conn_user_map[fd]);
+        if (user_itor != net_info.users_map.end())
+        {
+            user_itor->second->on_set_online_status(user_status::STATUS_OFF_LINE);
+        }
+        net_info.user_conn_map.erase(net_info.conn_user_map[fd]);
+        net_info.conn_user_map.erase(fd);
+        itIpPort = mIpPort.find(fd);
+        if (itIpPort != mIpPort.end())
+        {
+            mIpPort.erase(itIpPort);
+            itPeerInfo = comm->conn_info.peer.find(itIpPort->second);
+            if (itPeerInfo != comm->conn_info.peer.end())
+            {
+                comm->conn_info.peer.erase(itPeerInfo);
+            }
+        }
+    };
 
     while (comm->running)
     {
@@ -481,28 +520,7 @@ void *read_thread(void *arg)
                     }
                     else if (msg.op == 2) //断开某个连接
                     {
-                        char log_buf[256] = {0};
-                        sprintf(log_buf, "ReadThread, recv close:%d,errno:%d", msg.fd, errno);
-                        write_log(LOG_INFO, (uint8_t *)log_buf);
-                        close(msg.fd);
-                        epoll_ctl(epfd, EPOLL_CTL_DEL, msg.fd, &ev);
-                        auto user_itor = net_info.users_map.find(net_info.conn_user_map[msg.fd]);
-                        if (user_itor != net_info.users_map.end())
-                        {
-                            user_itor->second->on_set_online_status(user_status::STATUS_OFF_LINE);
-                        }
-                        net_info.user_conn_map.erase(net_info.conn_user_map[msg.fd]);
-                        net_info.conn_user_map.erase(msg.fd);
-                        itIpPort = mIpPort.find(msg.fd);
-                        if (itIpPort != mIpPort.end())
-                        {
-                            mIpPort.erase(itIpPort);
-                            itPeerInfo = comm->conn_info.peer.find(itIpPort->second);
-                            if (itPeerInfo != comm->conn_info.peer.end())
-                            {
-                                comm->conn_info.peer.erase(itPeerInfo);
-                            }
-                        }
+                        func_close(msg.fd, errno);
                     }
                 }
             }
@@ -517,9 +535,6 @@ void *read_thread(void *arg)
         //处理所发生的所有事件
         for (i = 0; i < nfds && comm->running; ++i)
         {
-            char log_buf[256] = {0};
-            sprintf(log_buf, "ReadThread, events:%d,errno:%d", events[i].events, errno);
-            write_log(LOG_INFO, (uint8_t *)log_buf);
             if (events[i].events & EPOLLIN) //有数据可读
             {
                 do
@@ -527,9 +542,6 @@ void *read_thread(void *arg)
                     nread = read(events[i].data.fd, buf + buf_index, MAXBUFSIZE - buf_index);
                     if (nread > 0) //读到数据
                     {
-                        char log_buf[256] = {0};
-                        sprintf(log_buf, "ReadThread, read:%d,errno:%d", nread, errno);
-                        write_log(LOG_INFO, (uint8_t *)log_buf);
                         itIpPort = mIpPort.find(events[i].data.fd);
                         if (itIpPort != mIpPort.end())
                         {
@@ -540,22 +552,36 @@ void *read_thread(void *arg)
                                 itPeerInfo->second.rcvbyte += nread;
                             }
                         }
-                        if (nread > 14)
+                        uint32_t read_index = 0;
+                        while ((uint32_t)nread > recv_msg_head_length)
                         {
                             buf_to_msg((uint8_t *)buf, nread, temp_recv_msg);
                             if (temp_recv_msg.data_length + recv_msg_head_length <= (uint32_t)nread)
                             {
-                                net_info.parse_msg((uint8_t *)buf, nread, events[i].data.fd, temp_recv_msg);
+                                uint32_t temp_read_index = net_info.parse_msg((uint8_t *)(buf + read_index), nread, events[i].data.fd, temp_recv_msg);
+                                if (temp_read_index == 0)
+                                {
+                                    char log_buf[256] = {0};
+                                    sprintf(log_buf, "Error, parse msg failed!");
+                                    write_log(LOG_ERROR, (uint8_t *)log_buf);
+                                    read_index = 0;
+                                    nread = 0;
+                                    buf_index = 0;
+                                    break;
+                                }
+                                nread -= temp_read_index;
+                                read_index += temp_read_index;
                             }
                             else
                             {
-                                buf_index += nread;
+                                break;
                             }
                         }
-                        else
-                        {
-                            buf_index += nread;
-                        }
+                        if (buf_index < read_index)
+                            buf_index = 0;
+                        if (read_index)
+                            memcpy(buf, buf + read_index, nread);
+                        buf_index += (uint32_t)nread;
                         if (buf_index == MAXBUFSIZE)
                         {
                             char log_buf[256] = {0};
@@ -568,9 +594,6 @@ void *read_thread(void *arg)
                     {
                         if (errno == EAGAIN) //没有数据了
                         {
-                            // char log_buf[256] = {0};
-                            // sprintf(log_buf, "ReadThread, read:%d,errno:%d,no data", nread, errno);
-                            // write_log(LOG_INFO, (uint8_t *)log_buf);
                             break;
                         }
                         else if (errno == EINTR) //可能被内部中断信号打断,经过验证对非阻塞socket并未收到此错误,应该可以省掉该步判断
@@ -581,43 +604,13 @@ void *read_thread(void *arg)
                         }
                         else //客户端主动关闭
                         {
-                            char log_buf[256] = {0};
-                            sprintf(log_buf, "ReadThread, read:%d,errno:%d,peer error", nread, errno);
-                            write_log(LOG_INFO, (uint8_t *)log_buf);
-                            close(events[i].data.fd);
-                            epoll_ctl(epfd, EPOLL_CTL_DEL, events[i].data.fd, &ev);
-                            itIpPort = mIpPort.find(events[i].data.fd);
-                            if (itIpPort != mIpPort.end())
-                            {
-                                mIpPort.erase(itIpPort);
-                                itPeerInfo = comm->conn_info.peer.find(itIpPort->second);
-                                if (itPeerInfo != comm->conn_info.peer.end())
-                                {
-                                    comm->conn_info.peer.erase(itPeerInfo);
-                                }
-                            }
-
+                            func_close(events[i].data.fd, errno);
                             break;
                         }
                     }
                     else if (nread == 0) //客户端主动关闭
                     {
-                        char log_buf[256] = {0};
-                        sprintf(log_buf, "ReadThread, read:%d,errno:%d,peer close", nread, errno);
-                        write_log(LOG_INFO, (uint8_t *)log_buf);
-                        close(events[i].data.fd);
-                        epoll_ctl(epfd, EPOLL_CTL_DEL, events[i].data.fd, &ev);
-                        itIpPort = mIpPort.find(events[i].data.fd);
-                        if (itIpPort != mIpPort.end())
-                        {
-                            mIpPort.erase(itIpPort);
-                            itPeerInfo = comm->conn_info.peer.find(itIpPort->second);
-                            if (itPeerInfo != comm->conn_info.peer.end())
-                            {
-                                comm->conn_info.peer.erase(itPeerInfo);
-                            }
-                        }
-
+                        func_close(events[i].data.fd, errno);
                         break;
                     }
                 } while (comm->running);
@@ -625,9 +618,6 @@ void *read_thread(void *arg)
             else if (events[i].events & EPOLLOUT) //有数据可写
             {
                 ev.data.fd = events[i].data.fd;
-                //设置用于注测的读操作事件
-                //
-                //
                 ev.events = EPOLLIN | EPOLLET;
                 //注册ev
                 ret = epoll_ctl(epfd, EPOLL_CTL_MOD, events[i].data.fd, &ev);
@@ -636,26 +626,12 @@ void *read_thread(void *arg)
                     char log_buf[256] = {0};
                     sprintf(log_buf, "ReadThread, epoll_ctl fail:%d,errno:%d.", ret, errno);
                     write_log(LOG_ERROR, (uint8_t *)log_buf);
-                    close(msg.fd);
+                    //close(msg.fd);
                 }
             }
             else if (events[i].events & EPOLLERR || events[i].events & EPOLLHUP) //有异常发生
             {
-                char log_buf[256] = {0};
-                sprintf(log_buf, "ReadThread, read:%d,errno:%d,err or hup", nread, errno);
-                write_log(LOG_ERROR, (uint8_t *)log_buf);
-                close(events[i].data.fd);
-                epoll_ctl(epfd, EPOLL_CTL_DEL, events[i].data.fd, &ev);
-                itIpPort = mIpPort.find(events[i].data.fd);
-                if (itIpPort != mIpPort.end())
-                {
-                    mIpPort.erase(itIpPort);
-                    itPeerInfo = comm->conn_info.peer.find(itIpPort->second);
-                    if (itPeerInfo != comm->conn_info.peer.end())
-                    {
-                        comm->conn_info.peer.erase(itPeerInfo);
-                    }
-                }
+                func_close(events[i].data.fd, errno);
             }
         }
         while (!net_info.msg_list.empty())

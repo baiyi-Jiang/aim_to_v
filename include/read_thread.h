@@ -17,17 +17,17 @@ public:
     {
         //
     }
-    bool parse_msg(const uint8_t *data, uint32_t len, int32_t fd, struct recv_msg &msg);
-    void on_acount_add(const uint8_t *data, uint32_t len, int32_t fd);
-    void on_acount_modify(const uint8_t *data, uint32_t len, int32_t fd);
-    void on_acount_delete(const uint8_t *data, uint32_t len, int32_t fd);
-    void on_group_add(const uint8_t *data, uint32_t len, int32_t fd);
-    void on_group_modify(const uint8_t *data, uint32_t len, int32_t fd);
-    void on_group_delete(const uint8_t *data, uint32_t len, int32_t fd);
-    void on_user_info_req(uint32_t guid, const uint8_t *data, uint32_t len, int32_t fd);
-    void on_group_info_req(uint32_t guid, const uint8_t *data, uint32_t len, int32_t fd);
-    void on_msg_send(uint32_t guid, const uint8_t *data, uint32_t len, int32_t fd);
-    void on_msg_list_req();
+    uint32_t parse_msg(const uint8_t *data, uint32_t len, int32_t fd, struct recv_msg &msg);
+    uint32_t on_acount_add(const uint8_t *data, uint32_t len, int32_t fd);
+    uint32_t on_acount_modify(const uint8_t *data, uint32_t len, int32_t fd);
+    uint32_t on_acount_delete(const uint8_t *data, uint32_t len, int32_t fd);
+    uint32_t on_group_add(const uint8_t *data, uint32_t len, int32_t fd);
+    uint32_t on_group_modify(const uint8_t *data, uint32_t len, int32_t fd);
+    uint32_t on_group_delete(const uint8_t *data, uint32_t len, int32_t fd);
+    uint32_t on_user_info_req(uint32_t guid, const uint8_t *data, uint32_t len, int32_t fd);
+    uint32_t on_group_info_req(uint32_t guid, const uint8_t *data, uint32_t len, int32_t fd);
+    uint32_t on_msg_send(uint32_t guid, const uint8_t *data, uint32_t len, int32_t fd);
+    uint32_t on_msg_list_req();
     int32_t send_msg(int32_t fd, uint8_t *data, uint32_t len);
 
 public:

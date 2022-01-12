@@ -55,11 +55,11 @@ struct msg_info
         MSG_TYPE_USER,
         MSG_TYPE_MAX,
     };
-    bool from_data(const uint8_t *data, const uint32_t len)
+    uint32_t from_data(const uint8_t *data, const uint32_t len)
     {
-        if (!data || len < length())
-            return false;
         uint32_t index = 0;
+        if (!data || len < length())
+            return index;
         index += memcpy_u(send_guid, data + index);
         index += memcpy_u(recv_guid, data + index);
         index += memcpy_u(time_sec, data + index);
@@ -68,9 +68,12 @@ struct msg_info
         msg_type = data[index++];
         keep1 = data[index++];
         if (len - length() < msg_length)
-            return false;
+        {
+            index = 0;
+            return index;
+        }    
         msg.assign((char *)data, (size_t)msg_length);
-        return true;
+        return index;
     }
     uint32_t length()
     {
@@ -145,11 +148,11 @@ struct group_member_info
         GROUP_JOB_MEMBER,  //普通成员
         GROUP_JOB_MAX
     };
-    bool from_data(const uint8_t *data, const uint32_t len)
+    uint32_t from_data(const uint8_t *data, const uint32_t len)
     {
-        if (!data || len < length())
-            return false;
         uint32_t index = 0;
+        if (!data || len < length())
+            return index;
         index += memcpy_u(group_guid, data + index);
         index += memcpy_u(user_guid, data + index);
         index += memcpy_u(icon_guid, data + index);
@@ -159,7 +162,7 @@ struct group_member_info
         memset(name, '\0', sizeof(name));
         memcpy(name, data + index, sizeof(name));
         index += sizeof(name);
-        return true;
+        return index;
     }
     uint32_t length()
     {
@@ -235,13 +238,13 @@ struct recv_msg_type
 
 struct acount_delete
 {
-    bool from_data(const uint8_t *data, const uint32_t len)
+    uint32_t from_data(const uint8_t *data, const uint32_t len)
     {
+        uint32_t index = 0;
         if (!data || len < length())
             return false;
-        uint32_t index = 0;
         index += memcpy_u(user_guid, data + index);
-        return true;
+        return index;
     }
     uint32_t length()
     {
@@ -261,13 +264,13 @@ struct acount_delete
 
 struct user_info_req
 {
-    bool from_data(const uint8_t *data, const uint32_t len)
+    uint32_t from_data(const uint8_t *data, const uint32_t len)
     {
-        if (!data || len < length())
-            return false;
         uint32_t index = 0;
+        if (!data || len < length())
+            return index;
         index += memcpy_u(user_guid, data + index);
-        return true;
+        return index;
     }
     uint32_t length()
     {
@@ -287,13 +290,13 @@ struct user_info_req
 
 struct group_info_req
 {
-    bool from_data(const uint8_t *data, const uint32_t len)
+    uint32_t from_data(const uint8_t *data, const uint32_t len)
     {
-        if (!data || len < length())
-            return false;
         uint32_t index = 0;
+        if (!data || len < length())
+            return index;
         index += memcpy_u(group_guid, data + index);
-        return true;
+        return index;
     }
     uint32_t length()
     {
@@ -313,20 +316,21 @@ struct group_info_req
 
 struct recv_msg
 {
-    bool from_data(const uint8_t *src_data, const uint32_t len)
+    uint32_t from_data(const uint8_t *src_data, const uint32_t len)
     {
-        if (!src_data || len < length())
-            return false;
         uint32_t index = 0;
+        if (!src_data || len < length())
+            return index;
         index += memcpy_u(guid, src_data + index);
         index += memcpy_u(type, src_data + index);
         index += memcpy_u(data_length, src_data + index);
         if (len - length() < data_length)
         {
-            return false;
+            index = 0;
+            return index;
         }
         data = (uint8_t *)(src_data + index);
-        return true;
+        return index;
     }
     uint32_t length()
     {
@@ -362,11 +366,11 @@ struct group_modify
         MANAGER_DELETE = 0x04,
         ModifyTypeMAX
     };
-    bool from_data(const uint8_t *data, const uint32_t len)
+    uint32_t from_data(const uint8_t *data, const uint32_t len)
     {
-        if (!data || len < length())
-            return false;
         uint32_t index = 0;
+        if (!data || len < length())
+            return index;
         index += memcpy_u(group_guid, data + index);
         index += memcpy_u(operate_guid, data + index);
         index += memcpy_u(target_guid, data + index);
@@ -374,7 +378,7 @@ struct group_modify
         index += memcpy_u(permission, data + index);
         index += memcpy_u(keep1, data + index);
         index += memcpy_u(keep2, data + index);
-        return true;
+        return index;
     }
     uint32_t length()
     {
@@ -412,14 +416,14 @@ struct group_modify
 
 struct group_delete
 {
-    bool from_data(const uint8_t *data, const uint32_t len)
+    uint32_t from_data(const uint8_t *data, const uint32_t len)
     {
-        if (!data || len < length())
-            return false;
         uint32_t index = 0;
+        if (!data || len < length())
+            return index;
         index += memcpy_u(group_guid, data + index);
         index += memcpy_u(operate_guid, data + index);
-        return true;
+        return index;
     }
     uint32_t length()
     {

@@ -9,13 +9,13 @@ GroupInfo::~GroupInfo()
     msg_limit = 0;
 }
 
-bool GroupInfo::from_data(uint32_t global_guid, const uint8_t *data, uint32_t data_len)
+uint32_t GroupInfo::from_data(uint32_t global_guid, const uint8_t *data, uint32_t data_len)
 {
+    int32_t index = 0;
     if (data_len < length())
     {
-        return false;
+        return index;
     }
-    int32_t index = 0;
     index += memcpy_u(group_guid, data + index);
     if (0 == group_guid)
         group_guid = ++global_guid;
@@ -25,14 +25,15 @@ bool GroupInfo::from_data(uint32_t global_guid, const uint8_t *data, uint32_t da
     uint32_t info_length = info.length();
     if (member_count * info_length > data_len - index)
     {
-        return false;
+        index = 0;
+        return index;
     }
     for (uint32_t i = 0; i < member_count; ++i)
     {
         info.from_data(data + index, data_len - index);
         index += info_length;
     }
-    return true;
+    return index;
 }
 
 uint32_t GroupInfo::to_data(uint8_t *data, const uint32_t data_len)
