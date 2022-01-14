@@ -694,16 +694,23 @@ void *read_thread(void *arg)
                     net_info.msg_list.pop_front();
                     continue;
                 }
-                user_itor->second->on_update_friend_active(msg_t->send_guid);
-                user_itor->second->on_add_msg(msg_t);
+                if (user_itor->second->on_update_friend_active(msg_t->send_guid))
+                {
+                    user_itor->second->on_add_msg(msg_t);
+                }
+                else
+                {
+                    //提示先添加好友
+                    continue;
+                }
                 auto send_user_itor = net_info.users_map.find(msg_t->send_guid);
                 if (send_user_itor == net_info.users_map.end())
                 {
                     net_info.msg_list.pop_front();
                     continue;
                 }
-                send_user_itor->second->on_update_friend_active(msg_t->recv_guid);
-                send_user_itor->second->on_add_msg(msg_t);
+                if (send_user_itor->second->on_update_friend_active(msg_t->recv_guid))
+                    send_user_itor->second->on_add_msg(msg_t);
                 auto conn_itor = net_info.user_conn_map.find(msg_t->recv_guid);
                 if (conn_itor != net_info.user_conn_map.end())
                 {
