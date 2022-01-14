@@ -139,7 +139,7 @@ bool UserInfo::on_add_msg(std::shared_ptr<msg_info> &msg)
 {
     if (msg->msg_type != msg_info::MSG_TYPE_USER)
         return false;
-    if (user_guid != msg->recv_guid)
+    if (user_guid != msg->recv_guid || user_guid != msg->send_guid)
         return false;
     auto msg_list_itor = msg_map.find(msg->send_guid);
     if (msg_list_itor == msg_map.end())
