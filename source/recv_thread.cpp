@@ -1,5 +1,6 @@
 #include "common.h"
 #include "struct_def.h"
+#include "log.h"
 
 //接收连接线程
 void *accept_thread(void *arg)
@@ -7,14 +8,10 @@ void *accept_thread(void *arg)
     common_info *comm = static_cast<common_info *>(arg);
     if (!comm)
     {
-        char log_buf[256] = {0};
-        sprintf(log_buf, "Error, accept_thread, invalid args!");
-        write_log(LOG_ERROR, (uint8_t *)log_buf);
+        log_print(LOG_ERROR, u8"accept_thread, invalid args!");
         return nullptr;
     }
-    char log_buf[256] = {0};
-    sprintf(log_buf, "AcceptThread, enter");
-    write_log(LOG_INFO, (uint8_t *)log_buf);
+    log_print(LOG_INFO, u8"AcceptThread, enter");
 
     int32_t ret;      //临时变量,存放返回值
     int32_t epfd;     //监听用的epoll
@@ -23,26 +20,24 @@ void *accept_thread(void *arg)
     int32_t i;        //临时变量,轮询数组用
     int32_t nfds;     //临时变量,有多少个socket有事件
 
-    struct epoll_event ev;                //事件临时变量
+    epoll_event ev;                //事件临时变量
     const int32_t MAXEVENTS = 1024;       //最大事件数
-    struct epoll_event events[MAXEVENTS]; //监听事件数组
+    epoll_event events[MAXEVENTS]; //监听事件数组
     socklen_t clilen;                     //声明epoll_event结构体的变量,ev用于注册事件,数组用于回传要处理的事件
-    struct sockaddr_in cliaddr;
-    struct sockaddr_in svraddr;
+    sockaddr_in cliaddr;
+    sockaddr_in svraddr;
 
     uint16_t uListenPort = 5000;
     int32_t iBacklogSize = 5;
     int32_t iBackStoreSize = 1024;
 
-    struct pipemsg msg; //消息队列数据
+    pipemsg msg; //消息队列数据
 
     //创建epoll,对2.6.8以后的版本,其参数无效,只要大于0的数值就行,内核自己动态分配
     epfd = epoll_create(iBackStoreSize);
     if (epfd < 0)
     {
-        char log_buf[256] = {0};
-        sprintf(log_buf, "AcceptThread, epoll_create fail:%d,errno:%d.", epfd, errno);
-        write_log(LOG_ERROR, (uint8_t *)log_buf);
+        log_print(LOG_ERROR, u8"AcceptThread, epoll_create fail:%d,errno:%d.", epfd, errno);
         return nullptr;
     }
 
@@ -50,9 +45,7 @@ void *accept_thread(void *arg)
     listenfd = socket(AF_INET, SOCK_STREAM, 0);
     if (listenfd < 0)
     {
-        char log_buf[256] = {0};
-        sprintf(log_buf, "AcceptThread, socket fail:%d,errno:%d.", epfd, errno);
-        write_log(LOG_ERROR, (uint8_t *)log_buf);
+        log_print(LOG_ERROR, u8"AcceptThread, socket fail:%d,errno:%d.", epfd, errno);
         close(epfd);
         return nullptr;
     }
@@ -70,9 +63,7 @@ void *accept_thread(void *arg)
     ret = epoll_ctl(epfd, EPOLL_CTL_ADD, listenfd, &ev);
     if (ret != 0)
     {
-        char log_buf[256] = {0};
-        sprintf(log_buf, "AcceptThread, epoll_ctl fail:%d,errno:%d.", ret, errno);
-        write_log(LOG_ERROR, (uint8_t *)log_buf);
+        log_print(LOG_ERROR, u8"AcceptThread, epoll_ctl fail:%d,errno:%d.", ret, errno);
         close(listenfd);
         close(epfd);
 
@@ -88,9 +79,7 @@ void *accept_thread(void *arg)
     ret = listen(listenfd, iBacklogSize);
     if (ret != 0)
     {
-        char log_buf[256] = {0};
-        sprintf(log_buf, "AcceptThread, listen fail:%d,errno:%d.", ret, errno);
-        write_log(LOG_ERROR, (uint8_t *)log_buf);
+        log_print(LOG_ERROR, u8"AcceptThread, listen fail:%d,errno:%d.", ret, errno);
         close(listenfd);
         close(epfd);
 
@@ -107,20 +96,16 @@ void *accept_thread(void *arg)
         {
             if (events[i].data.fd == listenfd) //是本监听socket上的事件
             {
-                char log_buf[256] = {0};
-                sprintf(log_buf, "AcceptThread, events:%d,errno:%d.", events[i].events, errno);
-                write_log(LOG_INFO, (uint8_t *)log_buf);
+                log_print(LOG_INFO, u8"AcceptThread, events:%d,errno:%d.", events[i].events, errno);
                 if (events[i].events & EPOLLIN) //有连接到来
                 {
                     do
                     {
-                        clilen = sizeof(struct sockaddr);
+                        clilen = sizeof(sockaddr);
                         connfd = accept(listenfd, (sockaddr *)&cliaddr, &clilen);
                         if (connfd > 0)
                         {
-                            char log_buf[256] = {0};
-                            sprintf(log_buf, "AAcceptThread, accept:%d,errno:%d,connect:%s:%d.", connfd, errno, inet_ntoa(cliaddr.sin_addr), ntohs(cliaddr.sin_port));
-                            write_log(LOG_INFO, (uint8_t *)log_buf);
+                            log_print(LOG_INFO, u8"AcceptThread, accept:%d,errno:%d,connect:%s:%d.", connfd, errno, inet_ntoa(cliaddr.sin_addr), ntohs(cliaddr.sin_port));
                             //往管道写数据
                             msg.op = 1;
                             msg.fd = connfd;
@@ -129,17 +114,13 @@ void *accept_thread(void *arg)
                             ret = write(comm->conn_info.wfd, &msg, 14);
                             if (ret != 14)
                             {
-                                char log_buf[256] = {0};
-                                sprintf(log_buf, "AcceptThread, write fail:%d,errno:%d.", connfd, errno);
-                                write_log(LOG_ERROR, (uint8_t *)log_buf);
+                                log_print(LOG_ERROR, u8"AcceptThread, write fail:%d,errno:%d.", connfd, errno);
                                 close(connfd);
                             }
                         }
                         else
                         {
-                            char log_buf[256] = {0};
-                            sprintf(log_buf, "AcceptThread, accept:%d,errno:%d.", connfd, errno);
-                            write_log(LOG_INFO, (uint8_t *)log_buf);
+                            log_print(LOG_INFO, u8"AcceptThread, accept:%d,errno:%d.", connfd, errno);
                             if (errno == EAGAIN) //没有连接需要接收了
                             {
                                 break;
@@ -159,9 +140,7 @@ void *accept_thread(void *arg)
                                 listenfd = socket(AF_INET, SOCK_STREAM, 0);
                                 if (listenfd < 0)
                                 {
-                                    char log_buf[256] = {0};
-                                    sprintf(log_buf, "AcceptThread, socket fail:%d,errno:%d.", epfd, errno);
-                                    write_log(LOG_ERROR, (uint8_t *)log_buf);
+                                    log_print(LOG_ERROR, u8"AcceptThread, socket fail:%d,errno:%d.", epfd, errno);
                                     close(epfd);
                                     return nullptr;
                                 }
@@ -179,9 +158,7 @@ void *accept_thread(void *arg)
                                 ret = epoll_ctl(epfd, EPOLL_CTL_ADD, listenfd, &ev);
                                 if (ret != 0)
                                 {
-                                    char log_buf[256] = {0};
-                                    sprintf(log_buf, "AcceptThread, epoll_ctl fail:%d,errno:%d.", ret, errno);
-                                    write_log(LOG_ERROR, (uint8_t *)log_buf);
+                                    log_print(LOG_ERROR, u8"AcceptThread, epoll_ctl fail:%d,errno:%d.", ret, errno);
                                     close(listenfd);
                                     close(epfd);
                                     return nullptr;
@@ -196,9 +173,7 @@ void *accept_thread(void *arg)
                                 ret = listen(listenfd, iBacklogSize);
                                 if (ret != 0)
                                 {
-                                    char log_buf[256] = {0};
-                                    sprintf(log_buf, "AcceptThread, listen fail:%d,errno:%d.", ret, errno);
-                                    write_log(LOG_ERROR, (uint8_t *)log_buf);
+                                    log_print(LOG_ERROR, u8"AcceptThread, listen fail:%d,errno:%d.", ret, errno);
                                     close(listenfd);
                                     close(epfd);
                                     return nullptr;
@@ -217,9 +192,7 @@ void *accept_thread(void *arg)
                     listenfd = socket(AF_INET, SOCK_STREAM, 0);
                     if (listenfd < 0)
                     {
-                        char log_buf[256] = {0};
-                        sprintf(log_buf, "AcceptThread, socket fail:%d,errno:%d.", epfd, errno);
-                        write_log(LOG_ERROR, (uint8_t *)log_buf);
+                        log_print(LOG_ERROR, u8"AcceptThread, socket fail:%d,errno:%d.", epfd, errno);
                         close(epfd);
 
                         return nullptr;
@@ -238,9 +211,7 @@ void *accept_thread(void *arg)
                     ret = epoll_ctl(epfd, EPOLL_CTL_ADD, listenfd, &ev);
                     if (ret != 0)
                     {
-                        char log_buf[256] = {0};
-                        sprintf(log_buf, "AcceptThread, epoll_ctl fail:%d,errno:%d.", ret, errno);
-                        write_log(LOG_ERROR, (uint8_t *)log_buf);
+                        log_print(LOG_ERROR, u8"AcceptThread, epoll_ctl fail:%d,errno:%d.", ret, errno);
                         close(listenfd);
                         close(epfd);
                         return nullptr;
@@ -255,9 +226,7 @@ void *accept_thread(void *arg)
                     ret = listen(listenfd, iBacklogSize);
                     if (ret != 0)
                     {
-                        char log_buf[256] = {0};
-                        sprintf(log_buf, "AcceptThread, listen fail:%d,errno:%d.", ret, errno);
-                        write_log(LOG_ERROR, (uint8_t *)log_buf);
+                        log_print(LOG_ERROR, u8"AcceptThread, listen fail:%d,errno:%d.", ret, errno);
                         close(listenfd);
                         close(epfd);
                         return nullptr;
@@ -277,8 +246,6 @@ void *accept_thread(void *arg)
     {
         close(epfd);
     }
-    //char log_buf[256] = {0};
-    sprintf(log_buf, "AcceptThread, exit.");
-    write_log(LOG_INFO, (uint8_t *)log_buf);
+    log_print(LOG_INFO, u8"AcceptThread, exit.");
     return nullptr;
 }

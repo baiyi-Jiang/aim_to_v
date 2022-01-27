@@ -26,10 +26,10 @@ public:
     bool traverse_managers(const std::function<bool(std::shared_ptr<group_member_info> &)> &func);
     bool traverse_normal_members(const std::function<bool(std::shared_ptr<group_member_info> &)> &func);
     bool traverse_all_members(const std::function<bool(std::shared_ptr<group_member_info> &)> &func);
-    bool on_add_msg(std::shared_ptr<msg_info> &msg);
+    bool on_add_msg(std::shared_ptr<MsgInfo> &msg);
     bool on_delete_msg(uint32_t operator_guid, uint32_t msg_num);
     bool clear_msg(uint32_t operator_guid);
-    bool traverse_msgs(const std::function<bool(std::shared_ptr<msg_info> &)> &func);
+    bool traverse_msgs(const std::function<bool(std::shared_ptr<MsgInfo> &)> &func);
     void set_learder_guid(uint32_t guid) { learder_guid = guid; }
 
 private:
@@ -39,6 +39,6 @@ private:
     MEMBER_LIST members_list;
     std::map<uint32_t, MEMBER_LIST::iterator> managers_map; //管理员列表，包括组长
     std::map<uint32_t, MEMBER_LIST::iterator> members_map;  //普通成员列表
-    std::list<std::shared_ptr<msg_info>> msg_list;
+    std::list<std::shared_ptr<MsgInfo>> msg_list;
     uint32_t msg_limit = 0; ////消息队列最多保持group_msgs_max_len条
 };

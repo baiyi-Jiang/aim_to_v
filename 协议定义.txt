@@ -9,19 +9,44 @@ guid(4字节) type(2字节) length(4字节) data(length字节)
 type：
     enum msg_type : uint16_t
     {
-        ACOUNT_ADD = 00,    //新增账号
-        ACOUNT_MODIFY = 01, //修改账号
-        ACOUNT_DELETE = 02, //删除账号
-        GROUP_ADD = 30,     //新增群组
-        GROUP_MODIFY = 31,  //修改群组
-        GROUP_DELETE = 32,  //删除群组
-        // GROUP_JOIN = 33,  //加入群组 //加在修改群组下
-        // GROUP_LEAVE = 34,  //离开群组 //加在修改群组下
-        // GROUP_MDIFY_PERMISSION = 35,  //修改群组成员权限 //加在修改群组下
-        // GROUP_ADD_MANAGER = 36,  //增加群组管理员 //加在修改群组下
-        // MSG_LIST_REQ = 37,  //删除群组管理员 //加在修改群组下
-        USER_INFO_REQ = 60, //请求联系人信息
-        MSG_SEND = 90,      //发送消息
-        MSG_LIST_REQ = 91,  //请求聊天记录
-        RECV_MST_TYPE_MAX
+        ACOUNT_ADD = 00,             //新增账号
+        ACOUNT_MODIFY = 01,          //修改账号
+        ACOUNT_DELETE = 02,          //删除账号
+        ACOUNT_LOGIN = 03,           //登录账号
+        ACOUNT_LOGOUT = 04,          //登出账号
+        ACOUNT_CAN_REG = 05,         //注册检查
+        GROUP_ADD = 30,              //新增群组
+        GROUP_MODIFY = 31,           //修改群组
+        GROUP_DELETE = 32,           //删除群组
+        USER_INFO_REQ = 60,          //请求联系人信息
+        GROUP_INFO_REQ = 61,         //请求群组信息
+        USER_INFO_BRIEF_REQ = 62,    //请求联系人简略信息
+        MSG_SEND = 90,               //发送消息
+        MSG_LIST_REQ = 91,           //请求聊天记录
+        SERVER_MSG_TYPE_MAX = 10000, //服务端消息类型限制
+
+        CLIENT_ACOUNT_ADD_ACK = 10000,         //新增账号回包
+        CLIENT_ACOUNT_MODIFY_ACK = 10001,      //修改账号回包
+        CLIENT_ACOUNT_DELETE_ACK = 10002,      //删除账号回包
+        CLIENT_ACOUNT_LOGIN_ACK = 10003,       //登录账号回包
+        CLIENT_ACOUNT_LOGOUT_ACK = 10004,      //登出账号回包
+        CLIENT_ACOUNT_CAN_REG_ACK = 10005,     //注册检查回包
+        CLIENT_GROUP_ADD_ACK = 10030,          //新增群组回包
+        CLIENT_GROUP_MODIFY_ACK = 10031,       //修改群组回包
+        CLIENT_GROUP_DELETE_ACK = 10032,       //删除群组回包
+        CLIENT_USER_INFO_ACK = 10060,          //回复联系人信息
+        CLIENT_GROUP_INFO_ACK = 10061,         //回复群组信息
+        CLIENT_USER_INFO_BRIEF_NOTIFY = 10062, //推送联系人简略信息
+        CLIENT_MSG_SEND = 10090,               //发送消息
+        CLIENT_MSG_LIST_ACK = 10091,           //回复聊天记录
+        RECV_MSG_TYPE_MAX
     };
+
+目前版本完成了单个客户端和服务端之间的交互，但是某个用户状态变化以后，怎么通知客户端还没有处理
+需要建立一套自定义变量的处理系统，存储格式为{k:xxx,s:sss,k:yyy,s:aaa,k:aaa,s:sawq}可以直接转成字符串，通过","分割
+然后转成一个map,k v都是字符串
+需要建立一套自定义变量的处理系统，存储格式为{k:xxx,n:1,k:yyy,n:2,k:aaa,n:3}可以直接转成字符串，通过","分割
+建立一个k字符串 v数字的map，这样可以自由添加自定义变量而无需修改结构体
+
+打开资料页才看到的信息打开资料页时请求
+平时看到的信息在更改时通知，比如头像、名字、上下线信息

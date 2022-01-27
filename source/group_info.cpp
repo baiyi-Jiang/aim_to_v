@@ -21,7 +21,7 @@ uint32_t GroupInfo::from_data(uint32_t global_guid, const uint8_t *data, uint32_
         group_guid = ++global_guid;
     index += memcpy_u(member_count, data + index);
     index += memcpy_u(learder_guid, data + index);
-    struct group_member_info info;
+    group_member_info info;
     uint32_t info_length = info.length();
     if (member_count * info_length > data_len - index)
     {
@@ -46,7 +46,7 @@ uint32_t GroupInfo::to_data(uint8_t *data, const uint32_t data_len)
     index += memcpy_u(data + index, group_guid);
     index += memcpy_u(data + index, member_count);
     index += memcpy_u(data + index, learder_guid);
-    struct group_member_info info;
+    group_member_info info;
     if (member_count * info.length() > data_len - index)
     {
         index = 0;
@@ -65,7 +65,7 @@ uint32_t GroupInfo::length()
     uint32_t length = sizeof(group_guid);
     length += sizeof(member_count);
     length += sizeof(learder_guid);
-    struct group_member_info info;
+    group_member_info info;
     length += member_count * info.length();
     return length;
 }
@@ -270,9 +270,9 @@ bool GroupInfo::traverse_all_members(const std::function<bool(std::shared_ptr<gr
     return traverse_managers(func) && traverse_normal_members(func);
 }
 
-bool GroupInfo::on_add_msg(std::shared_ptr<msg_info> &msg)
+bool GroupInfo::on_add_msg(std::shared_ptr<MsgInfo> &msg)
 {
-    if (msg->msg_type != msg_info::MSG_TYPE_GROUP)
+    if (msg->msg_type != MsgInfo::MSG_TYPE_GROUP)
         return false;
     if (group_guid != msg->recv_guid)
         return false;
@@ -295,7 +295,7 @@ bool GroupInfo::on_delete_msg(uint32_t operator_guid, uint32_t msg_num)
     auto rend = msg_list.rend();
     while (rbegin != rend)
     {
-        std::shared_ptr<msg_info> &msg = *rbegin;
+        std::shared_ptr<MsgInfo> &msg = *rbegin;
         if (msg->msg_num == msg_num)
         {
             msg_list.erase((++rbegin).base());
@@ -317,7 +317,7 @@ bool GroupInfo::clear_msg(uint32_t operator_guid)
     return true;
 }
 
-bool GroupInfo::traverse_msgs(const std::function<bool(std::shared_ptr<msg_info> &)> &func)
+bool GroupInfo::traverse_msgs(const std::function<bool(std::shared_ptr<MsgInfo> &)> &func)
 {
     auto begin = msg_list.begin();
     auto end = msg_list.end();

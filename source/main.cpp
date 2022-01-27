@@ -1,21 +1,33 @@
 #include "common.h"
 #include "struct_def.h"
+#include "log.h"
 
-struct common_info comm;
+common_info comm;
 
 static void sig_pro(int32_t signum)
 {
-    char log_buf[256] = {0};
-    sprintf(log_buf, "sig_pro, recv signal:%d", signum);
-    write_log(LOG_INFO, (uint8_t *)log_buf);
+    log_print(LOG_ERROR, u8"sig_pro, recv signal:%d", signum);
     if (signum == SIGQUIT)
     {
         comm.running = false;
     }
 }
 
+bool init()
+{
+    TheLogSystem::instance().set_print_log_level(LOG_INFO);
+    return true;
+}
+
+bool uninit()
+{
+    TheLogSystem::release();
+    return true;
+}
+
 int32_t main(int32_t argc, char *argv[])
 {
+    init();
     int32_t ret;
     int32_t fd[2];             //读写管道
     pthread_t iAcceptThreadId; //接收连接线程ID
@@ -60,9 +72,7 @@ int32_t main(int32_t argc, char *argv[])
     ret = pipe(fd);
     if (ret < 0)
     {
-        char log_buf[256] = {0};
-        sprintf(log_buf, "main, pipe fail:%d,errno:%d", ret, errno);
-        write_log(LOG_ERROR, (uint8_t *)log_buf);
+        log_print(LOG_ERROR, u8"main, pipe fail:%d,errno:%d", ret, errno);
         comm.running = false;
         return 0;
     }
@@ -82,9 +92,7 @@ int32_t main(int32_t argc, char *argv[])
     ret = pthread_create(&iAcceptThreadId, &attr, accept_thread, &comm);
     if (ret != 0)
     {
-        char log_buf[256] = {0};
-        sprintf(log_buf, "main, pthread_create AcceptThread fail:%d,errno:%d", ret, errno);
-        write_log(LOG_ERROR, (uint8_t *)log_buf);
+        log_print(LOG_ERROR, u8"main, pthread_create AcceptThread fail:%d,errno:%d", ret, errno);
         comm.running = false;
         close(comm.conn_info.rfd);
         close(comm.conn_info.wfd);
@@ -95,9 +103,7 @@ int32_t main(int32_t argc, char *argv[])
     ret = pthread_create(&iReadThreadId, &attr, read_thread, &comm);
     if (ret != 0)
     {
-        char log_buf[256] = {0};
-        sprintf(log_buf, "main, pthread_create ReadThread fail:%d,errno:%d", ret, errno);
-        write_log(LOG_ERROR, (uint8_t *)log_buf);
+        log_print(LOG_ERROR, u8"main, pthread_create ReadThread fail:%d,errno:%d", ret, errno);
         comm.running = false;
         pthread_join(iAcceptThreadId, NULL);
         close(comm.conn_info.rfd);
@@ -116,5 +122,6 @@ int32_t main(int32_t argc, char *argv[])
     pthread_join(iReadThreadId, NULL);
     close(comm.conn_info.rfd);
     close(comm.conn_info.wfd);
+    uninit();
     return 0;
 }

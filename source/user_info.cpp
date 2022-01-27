@@ -1,5 +1,6 @@
 #include "user_info.h"
 #include "common.h"
+#include "log.h"
 
 uint32_t user_msgs_max_len = 50;
 
@@ -54,10 +55,21 @@ uint32_t UserInfo::from_data(uint32_t global_guid, const uint8_t *data, uint32_t
     index += sizeof(eamil);
     memcpy(city, data + index, sizeof(city));
     index += sizeof(city);
-    memcpy(passwd, data + index, sizeof(passwd));
-    index += sizeof(passwd);
-    memcpy(custom, data + index, sizeof(custom));
-    index += sizeof(custom);
+    index += memcpy_u(passwd, data + index);
+    index += memcpy_u(custom_length, data + index);
+    if (data_len < custom_length + index)
+    {
+        log_print(LOG_ERROR,u8"数据不完整！");
+        index = 0;
+        return index;
+    }
+    if (!custom.from_data(data + index, custom_length))
+    {
+        log_print(LOG_ERROR,u8"自定义变量解析失败！");
+        index = 0;
+        return index;
+    }
+    index += custom_length;
     return index;
 }
 
@@ -79,7 +91,8 @@ uint32_t UserInfo::length()
     length += sizeof(eamil);
     length += sizeof(city);
     length += sizeof(passwd);
-    length += sizeof(custom);
+    length += sizeof(custom_length);
+    length += custom.length();
     return length;
 }
 
@@ -111,14 +124,14 @@ uint32_t UserInfo::to_data(uint8_t *data, const uint32_t len)
     index += sizeof(eamil);
     memcpy(data + index, city, sizeof(city));
     index += sizeof(city);
-    memcpy(data + index, passwd, sizeof(passwd));
-    index += sizeof(passwd);
-    memcpy(data + index, custom, sizeof(custom));
-    index += sizeof(custom);
+    passwd = 0U; //不向外界输出密码
+    index += memcpy_u(data + index, passwd);
+    index += memcpy_u(data + index, custom_length);
+    index += custom.to_data(data + index, len - index);
     return index;
 }
 
-bool UserInfo::traverse_list(uint32_t guid, const std::function<bool(std::shared_ptr<msg_info> &)> &func)
+bool UserInfo::traverse_list(uint32_t guid, const std::function<bool(std::shared_ptr<MsgInfo> &)> &func)
 {
     auto list_ptr = msg_map.find(guid);
     if (list_ptr == msg_map.end())
@@ -135,9 +148,9 @@ bool UserInfo::traverse_list(uint32_t guid, const std::function<bool(std::shared
     return true;
 }
 
-bool UserInfo::on_add_msg(std::shared_ptr<msg_info> &msg)
+bool UserInfo::on_add_msg(std::shared_ptr<MsgInfo> &msg)
 {
-    if (msg->msg_type != msg_info::MSG_TYPE_USER)
+    if (msg->msg_type != MsgInfo::MSG_TYPE_USER)
         return false;
     if (user_guid != msg->recv_guid || user_guid != msg->send_guid)
         return false;
@@ -169,7 +182,7 @@ bool UserInfo::on_delete_msg(uint32_t recv_guid, uint32_t msg_num)
     auto rend = msgs_list->rend();
     while (rbegin != rend)
     {
-        std::shared_ptr<msg_info> &msg = *rbegin;
+        std::shared_ptr<MsgInfo> &msg = *rbegin;
         if (msg->msg_num == msg_num)
         {
             msgs_list->erase((++rbegin).base());
@@ -278,5 +291,15 @@ bool UserInfo::on_delete_group()
     if (owner_groups == 0)
         return false;
     --owner_groups;
+    return true;
+}
+
+bool UserInfo::make_brief_data(BriefUserInfo &info)
+{
+    info.user_guid = get_user_guid();
+    info.icon_guid = get_icon_guid();
+    std::string user_name = get_name();
+    memcpy(info.name, user_name.c_str(), std::min(sizeof(info.name), user_name.size()));
+    info.online_status = get_online_status();
     return true;
 }

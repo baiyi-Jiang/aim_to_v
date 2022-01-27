@@ -29,24 +29,14 @@
 #include <sstream>
 #include <iostream>
 #include <stdexcept>
-
-enum log_level : uint8_t
-{
-    LOG_SYSTEM,
-    LOG_ERROR,
-    LOG_WARING,
-    LOG_INFO,
-    LOG_DEBUG,
-    LOG_MAX
-};
+#include <functional>
+#include "error_def.h"
 
 uint32_t get_time_sec();
 
 void check_big_data();
 
 bool get_is_big_data();
-
-void write_log(log_level level, uint8_t *msg);
 
 #ifndef WIN32
 void setnonblocking(int32_t sock);
@@ -93,3 +83,15 @@ void *read_thread(void *arg);
 
 void *accept_thread(void *arg);
 #endif
+
+void split_str(std::string src, std::vector<std::string>& vec);
+
+std::string custom_get_key(const std::string& src, const std::string& split_str);
+
+std::string custom_get_str(const std::string& src, const std::string& split_str);
+
+uint64_t custom_get_num(const std::string& src, const std::string& split_str);
+
+time_t string2time_t(const std::string string_time);
+
+std::string time_t2string(const time_t time_t_time);
