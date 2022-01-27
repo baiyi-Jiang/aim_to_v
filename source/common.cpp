@@ -23,6 +23,7 @@ void LogSystem::log_print_v(log_level level, const char *file_name, int line_num
     va_copy(arg_copy, ap);
     int size = vsnprintf(NULL, 0, format, arg_copy);
     va_end(arg_copy);
+#endif
     char log_buf[2048] = {0};
     char *print_buf = nullptr;
     if (size > 1024)
@@ -31,7 +32,6 @@ void LogSystem::log_print_v(log_level level, const char *file_name, int line_num
         if (!print_buf)
             return;
     }
-#endif
     std::vector<char> body(size + 1);
 #ifdef _WIN32
     ::vsprintf_s(body.data(), body.size(), format, ap);
@@ -84,6 +84,11 @@ void LogSystem::log_print_v(log_level level, const char *file_name, int line_num
         if (!fp_)
         {
             printf(u8"ERROR!!!,create log file failed!\n");
+            if (print_buf)
+            {
+                delete print_buf;
+                print_buf = nullptr;
+            }
             return;
         }
     }

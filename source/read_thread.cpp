@@ -75,6 +75,11 @@ uint32_t NetInfo::parse_msg(const uint8_t *data, uint32_t len, int32_t fd, RecvM
         index = on_group_info_req(data + parse_msg_head_length, msg.get_sub_pkg_data_length(), fd);
         break;
     }
+    case recv_msg_type::USER_INFO_BRIEF_REQ:
+    {
+        index = on_user_brief_info_req(data + parse_msg_head_length, msg.get_sub_pkg_data_length(), fd);
+        break;
+    }
     case recv_msg_type::MSG_SEND:
     {
         index = on_msg_send(msg.get_pkg_sender_guid(), data + parse_msg_head_length, msg.get_sub_pkg_data_length(), fd);
@@ -86,6 +91,7 @@ uint32_t NetInfo::parse_msg(const uint8_t *data, uint32_t len, int32_t fd, RecvM
     }
     default:
     {
+        log_print(LOG_ERROR, u8"Unknow type:%d", msg.get_pkg_type());
         break;
     }
     }
