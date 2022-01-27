@@ -119,6 +119,7 @@ uint32_t NetInfo::on_acount_add(const uint8_t *data, uint32_t len, int32_t fd)
         users_map.erase(user_itor);
     }
     uint32_t user_guid = user.get_user_guid();
+    user.set_reg_time(get_time_sec());
     user.on_set_online_status(user_status::STATUS_ON_LINE);
     users.emplace_back(user);
     users_map[user_guid] = std::prev(users.end());
@@ -249,7 +250,19 @@ uint32_t NetInfo::on_acount_login(const uint8_t *data, uint32_t len, int32_t fd)
     uint32_t index = login.from_data(data, len);
     if (!index)
         return index;
-    uint16_t err_no = on_login(std::string((const char *)login.phone), login.passwd);
+    std::string phone((const char *)login.phone);
+    uint16_t err_no = on_login(phone, login.passwd);
+    if (err_no == ERROR_OK)
+    {
+        size_t phone_hash = std::hash<std::string>{}(phone);
+        auto user_itor = users_map.find(phone_hash_map[phone_hash]);
+        if (user_itor != users_map.end())
+        {
+            user_itor->second->set_last_login_time(get_time_sec());
+            user_itor->second->set_last_logout_time(user_itor->second->get_last_login_time());
+            user_itor->second->on_set_online_status(user_status::STATUS_ON_LINE);
+        }
+    }
     send_client_ack(recv_msg_type::CLIENT_ACOUNT_LOGIN_ACK, err_no, fd);
     return index;
 }
@@ -269,6 +282,7 @@ uint32_t NetInfo::on_acount_logout(const uint8_t *data, uint32_t len, int32_t fd
     if (user_itor != users_map.end())
     {
         user_itor->second->on_set_online_status(user_status::STATUS_OFF_LINE);
+        user_itor->second->set_last_logout_time(get_time_sec());
     }
     send_client_ack(recv_msg_type::CLIENT_ACOUNT_LOGOUT_ACK, ERROR_OK, fd);
     return index;

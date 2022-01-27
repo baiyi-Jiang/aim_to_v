@@ -44,6 +44,9 @@ public:
     std::string get_city() { return std::string((char *)city, sizeof(city)); }
     size_t get_passwd() { return passwd; }
     uint32_t get_custom_length() { return custom_length; }
+    void set_reg_time(uint32_t time) { reg_time = time; }
+    void set_last_login_time(uint32_t time) { last_login_time = time; }
+    void set_last_logout_time(uint32_t time) { last_logout_time = time; }
     bool on_add_msg(std::shared_ptr<MsgInfo> &msg);
     bool on_delete_msg(uint32_t recv_guid, uint32_t msg_num);
     bool clear_msg(uint32_t recv_guid);
