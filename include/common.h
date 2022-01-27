@@ -32,6 +32,8 @@
 #include <functional>
 #include "error_def.h"
 
+#define Unused(parm) (void)parm
+
 uint32_t get_time_sec();
 
 void check_big_data();

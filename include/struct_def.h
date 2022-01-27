@@ -249,9 +249,19 @@ public:
         return true;
     }
     uint8_t *get_sub_pkg_data() { return sub_pkg_data; }
-    virtual uint32_t from_data(const uint8_t *data, const uint32_t len) { return 0; }
+    virtual uint32_t from_data(const uint8_t *data, const uint32_t len)
+    {
+        Unused(data);
+        Unused(len);
+        return 0;
+    }
     virtual uint32_t length() { return 0; }
-    virtual uint32_t to_data(uint8_t *data, const uint32_t len) { return 0; }
+    virtual uint32_t to_data(uint8_t *data, const uint32_t len)
+    {
+        Unused(data);
+        Unused(len);
+        return 0;
+    }
 
 public:
     uint32_t pkg_sender_guid;

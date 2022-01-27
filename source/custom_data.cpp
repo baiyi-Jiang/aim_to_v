@@ -49,7 +49,7 @@ bool CustomData::from_data(const uint8_t *data, const uint32_t len)
 
 uint32_t CustomData::size()
 {
-    return str_map.size() + num_map.size();
+    return (uint32_t)(str_map.size() + num_map.size());
 }
 
 uint32_t CustomData::to_data(uint8_t *data, const uint32_t len)
@@ -71,7 +71,7 @@ uint32_t CustomData::to_data(uint8_t *data, const uint32_t len)
     if (len < index + str.size())
         return index;
     memcpy(data + index, str.c_str(), str.size());
-    index += str.size();
+    index += (uint32_t)str.size();
     bool is_append = !str.empty();
     for (const auto &item : num_map)
     {
@@ -88,7 +88,7 @@ uint32_t CustomData::to_data(uint8_t *data, const uint32_t len)
             return index;
         }
         memcpy(data + index, tmp_str.c_str(), tmp_str.size());
-        index += tmp_str.size();
+        index += (uint32_t)tmp_str.size();
         if (len < index + sizeof(item.second))
         {
             index = 0;
@@ -121,8 +121,8 @@ bool CustomData::add_custom(std::string key, std::string str)
     str_map[key] = str;
     if (data_len != 0)
         ++data_len;                             //加上两个键值之间的','
-    data_len += key.size() + sizeof("k:,") - 1; //key.size()不含'\0',sizeof("k:,")包含'\0'
-    data_len += str.size() + sizeof("s:") - 1;
+    data_len += (uint32_t)key.size() + sizeof("k:,") - 1; //key.size()不含'\0',sizeof("k:,")包含'\0'
+    data_len += (uint32_t)str.size() + sizeof("s:") - 1;
     return true;
 }
 
@@ -142,7 +142,7 @@ bool CustomData::add_custom(std::string key, uint64_t num)
     num_map[key] = num;
     if (data_len != 0)
         ++data_len; //加上两个键值之间的','
-    data_len += key.size() + sizeof("k:,") - 1;
+    data_len += (uint32_t)key.size() + sizeof("k:,") - 1;
     data_len += sizeof(num) + sizeof("n:") - 1;
     return true;
 }
@@ -152,8 +152,8 @@ bool CustomData::delete_custom_str(std::string key)
     auto str_itor = str_map.find(key);
     if (str_itor != str_map.end())
     {
-        data_len -= key.size() + sizeof("k:,") - 1;
-        data_len -= str_map[key].size() + sizeof("s:") - 1;
+        data_len -= (uint32_t)key.size() + sizeof("k:,") - 1;
+        data_len -= (uint32_t)(str_map[key].size()) + sizeof("s:") - 1;
         if (data_len)
             --data_len;
         str_map.erase(str_itor);
@@ -166,7 +166,7 @@ bool CustomData::delete_custom_num(std::string key)
     auto num_itor = num_map.find(key);
     if (num_itor != num_map.end())
     {
-        data_len -= key.size() + sizeof("k:,") - 1;
+        data_len -= (uint32_t)key.size() + sizeof("k:,") - 1;
         data_len -= sizeof(num_map[key]) + sizeof("n:") - 1;
         if (data_len)
             --data_len;
