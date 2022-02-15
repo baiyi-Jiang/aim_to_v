@@ -97,3 +97,6 @@ uint64_t custom_get_num(const std::string& src, const std::string& split_str);
 time_t string2time_t(const std::string string_time);
 
 std::string time_t2string(const time_t time_t_time);
+
+//在指定路径读取文件名
+bool getFilename(std::string &error_msg, std::vector<std::string> &tempvector);

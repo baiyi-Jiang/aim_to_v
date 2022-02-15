@@ -1,6 +1,11 @@
 #include <string>
 #include <time.h>
 #include <stdio.h>
+#include <stdlib.h>
+#ifndef WIN32
+#include <unistd.h>
+#include <dirent.h>
+#endif
 #include "common.h"
 #include "log.h"
 
@@ -186,7 +191,7 @@ uint64_t custom_get_num(const std::string &src, const std::string &split_str)
     return num;
 }
 
-//string 转换为time_t  时间格式为2014_03_28 18:25:26
+// string 转换为time_t  时间格式为2014_03_28 18:25:26
 time_t string2time_t(const std::string string_time)
 {
     tm tm1;
@@ -205,7 +210,7 @@ time_t string2time_t(const std::string string_time)
     return time1;
 }
 
-//time_t转换为string  时间格式为2014_03_28 18:25:26
+// time_t转换为string  时间格式为2014_03_28 18:25:26
 std::string time_t2string(const time_t time_t_time)
 {
     char szTime[100] = {'\0'};
@@ -222,4 +227,53 @@ std::string time_t2string(const time_t time_t_time)
 
     std::string strTime = szTime;
     return strTime;
+}
+
+int const MAX_STR_LEN = 200;
+
+//在指定路径读取文件名 file_suffix文件后缀名
+bool getFilename(std::string &file_path, std::string file_suffix, std::vector<std::string> &tempvector, std::string &error_msg)
+{
+    if (file_path.empty())
+        return false;
+    char path[1024] = {0};
+#ifdef WIN32
+    sprintf_s(path, "%s*.%s", file_path.c_str(), file_suffix.c_str());
+    _finddatai64_t file;
+    intptr_t longf;
+    if ((longf = _findfirsti64(path, &file)) == -1l)
+    {
+        error_msg = u8"在指定路径下没有找到文件";
+        return false;
+    }
+    else
+    {
+        do
+        {
+            tempvector.push_back(file.name);
+        } while (_findnexti64(longf, &file) == 0);
+    }
+    _findclose(longf);
+#else
+    struct stat s;
+    lstat(file_path.c_str(), &s);
+    if (!S_ISDIR(s.st_mode))
+    {
+        return false;
+    }
+    struct dirent *filename;
+    DIR *dir;
+    dir = opendir(file_path.c_str());
+    if (nullptr == dir)
+        return false;
+    /* read all the files in the dir ~ */
+    while ((filename = readdir(dir)) != NULL)
+    {
+        if (strcmp(filename->d_name, ".") == 0 ||
+            strcmp(filename->d_name, "..") == 0)
+            continue;
+        tempvector.push_back(filename ->d_name);
+    }
+#endif
+    return true;
 }
