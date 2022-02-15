@@ -236,8 +236,8 @@ bool getFilename(std::string &file_path, std::string file_suffix, std::vector<st
 {
     if (file_path.empty())
         return false;
-    char path[1024] = {0};
 #ifdef WIN32
+    char path[1024] = {0};
     sprintf_s(path, "%s*.%s", file_path.c_str(), file_suffix.c_str());
     _finddatai64_t file;
     intptr_t longf;

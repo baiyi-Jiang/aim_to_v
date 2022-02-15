@@ -28,6 +28,7 @@ public:
     uint32_t from_data(uint32_t global_guid, const uint8_t *data, uint32_t data_len);
     uint32_t length();
     uint32_t to_data(uint8_t *data, const uint32_t len);
+
     uint32_t get_user_guid() { return user_guid; }
     uint32_t get_icon_guid() { return icon_guid; }
     uint32_t get_reg_time() { return reg_time; }
@@ -44,9 +45,20 @@ public:
     std::string get_city() { return std::string((char *)city, sizeof(city)); }
     size_t get_passwd() { return passwd; }
     uint32_t get_custom_length() { return custom_length; }
+    void set_icon_guid(uint32_t guid) { icon_guid = guid; }
     void set_reg_time(uint32_t time) { reg_time = time; }
     void set_last_login_time(uint32_t time) { last_login_time = time; }
     void set_last_logout_time(uint32_t time) { last_logout_time = time; }
+    void set_sex(uint8_t s) { sex = s; }
+    void set_age(uint8_t a) { age = a; }
+    void set_name(std::string& s) { memcpy(name, s.c_str(), std::min(sizeof(name), s.size())); }
+    void set_phone(std::string& s) { memcpy(phone, s.c_str(), std::min(sizeof(phone), s.size())); }
+    void set_qq(std::string& s) { memcpy(qq, s.c_str(), std::min(sizeof(qq), s.size())); }
+    void set_wechat(std::string& s) { memcpy(wechat, s.c_str(), std::min(sizeof(wechat), s.size())); }
+    void set_eamil(std::string& s) { memcpy(eamil, s.c_str(), std::min(sizeof(eamil), s.size())); }
+    void set_city(std::string& s) { memcpy(city, s.c_str(), std::min(sizeof(city), s.size())); }
+    void set_passwd(std::string& s) { passwd = std::hash<std::string>{}(s); }
+
     bool on_add_msg(std::shared_ptr<MsgInfo> &msg);
     bool on_delete_msg(uint32_t recv_guid, uint32_t msg_num);
     bool clear_msg(uint32_t recv_guid);
@@ -64,6 +76,7 @@ public:
     bool can_create_group() { return owner_groups < (uint8_t)OWN_GROUP_MAX; }
     std::map<uint32_t, uint32_t> &get_join_groups() { return join_groups; }
     std::map<uint32_t, uint32_t> &get_friends() { return friends; }
+
     std::string get_custom_str(std::string key) { return custom.get_custom_str(key); }
     uint64_t get_custom_num(std::string key) { return custom.get_custom_num(key); }
     bool set_custom(std::string key, std::string str) { return custom.add_custom(key, str); }
