@@ -100,6 +100,7 @@ void LogSystem::log_print_v(log_level level, const char *file_name, int line_num
         }
     }
     fwrite(print_buf ? print_buf : log_buf, write_count, 1, fp_);
+    fflush(fp_);
     if (print_buf)
     {
         delete print_buf;
@@ -195,13 +196,13 @@ namespace common
         return num;
     }
 
-    // string 转换为time_t  时间格式为2014_03_28 18:25:26
+    // string 转换为time_t  时间格式为2014_03_28 18_25_26
     time_t string2time_t(const std::string string_time)
     {
         tm tm1;
         memset(&tm1, 0, sizeof(tm1));
         time_t time1;
-        sscanf(string_time.c_str(), "%d_%d_%d %d:%d:%d",
+        sscanf(string_time.c_str(), "%04d_%02d_%02d %02d_%02d_%02d",
                &(tm1.tm_year),
                &(tm1.tm_mon),
                &(tm1.tm_mday),
@@ -214,14 +215,14 @@ namespace common
         return time1;
     }
 
-    // time_t转换为string  时间格式为2014_03_28 18:25:26
+    // time_t转换为string  时间格式为2014_03_28 18_25_26
     std::string time_t2string(const time_t time_t_time)
     {
         char szTime[100] = {'\0'};
         struct tm *ptm = localtime(&time_t_time);
         ptm->tm_year += 1900;
         ptm->tm_mon += 1;
-        sprintf(szTime, "%04d_%02d_%02d %02d:%02d:%02d",
+        sprintf(szTime, "%04d_%02d_%02d %02d_%02d_%02d",
                 ptm->tm_year,
                 ptm->tm_mon,
                 ptm->tm_mday,
