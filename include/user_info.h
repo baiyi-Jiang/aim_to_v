@@ -10,12 +10,6 @@ class UserInfo
 {
 public:
     using MSG_LIST = std::list<std::shared_ptr<MsgInfo>>;
-    enum sex_type : uint8_t
-    {
-        MALE = 0x00,
-        FEMALE,
-        OTHER
-    };
     UserInfo()
     {
     }

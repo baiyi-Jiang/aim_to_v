@@ -45,6 +45,13 @@ struct conninfo
     std::map<ipport, peerinfo> peer; //对方信息
 };
 
+enum sex_type : uint8_t
+{
+    MALE = 0x00,
+    FEMALE,
+    OTHERSEX
+};
+
 struct recv_msg_type
 {
     enum msg_type : uint16_t
@@ -265,7 +272,7 @@ public:
 
 public:
     uint32_t pkg_sender_guid;
-    uint16_t pkg_type; //recv_msg_type:type
+    uint16_t pkg_type; // recv_msg_type:type
 private:
     uint32_t sub_pkg_data_length;
     uint8_t *sub_pkg_data;
@@ -506,7 +513,7 @@ public:
     uint32_t group_guid;
     uint32_t operate_guid;
     uint32_t target_guid;
-    uint8_t opreadte_type; //ModifyType
+    uint8_t opreadte_type; // ModifyType
     uint8_t permission;
     uint8_t keep1;
     uint8_t keep2;
