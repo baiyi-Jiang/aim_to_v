@@ -234,7 +234,7 @@ namespace common
     int const MAX_STR_LEN = 200;
 
     //在指定路径读取文件名 file_suffix文件后缀名
-    bool getFilename(std::string &file_path, std::string file_suffix, std::vector<std::string> &tempvector, std::string &error_msg)
+    bool getFilename(const std::string &file_path, const std::string &file_suffix, std::vector<std::string> &tempvector, std::string &error_msg)
     {
         if (file_path.empty())
             return false;
@@ -261,13 +261,17 @@ namespace common
         lstat(file_path.c_str(), &s);
         if (!S_ISDIR(s.st_mode))
         {
+            error_msg = u8"路径不能为空";
             return false;
         }
         struct dirent *filename;
         DIR *dir;
         dir = opendir(file_path.c_str());
         if (nullptr == dir)
+        {
+            error_msg = u8"路径不存在";
             return false;
+        }
         /* read all the files in the dir ~ */
         while ((filename = readdir(dir)) != NULL)
         {
