@@ -5,6 +5,8 @@
 #ifndef WIN32
 #include <unistd.h>
 #include <dirent.h>
+#else
+#include <io.h>
 #endif
 #include "common.h"
 #include "log.h"

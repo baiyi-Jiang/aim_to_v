@@ -299,7 +299,7 @@ bool UserInfo::make_brief_data(BriefUserInfo &info)
     info.user_guid = get_user_guid();
     info.icon_guid = get_icon_guid();
     std::string user_name = get_name();
-    memcpy(info.name, user_name.c_str(), std::min(sizeof(info.name), user_name.size()));
+    memcpy(info.name, user_name.c_str(), common::min(sizeof(info.name), user_name.size()));
     info.online_status = get_online_status();
     return true;
 }

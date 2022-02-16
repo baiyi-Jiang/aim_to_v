@@ -98,5 +98,11 @@ namespace common
     std::string time_t2string(const time_t time_t_time);
 
     //在指定路径读取文件名
-    bool getFilename(const std::string &file_path, const std::string& file_suffix, std::vector<std::string> &tempvector, std::string &error_msg);
+    bool getFilename(const std::string &file_path, const std::string &file_suffix, std::vector<std::string> &tempvector, std::string &error_msg);
+
+    template <class U>
+    U min(const U &a, const U &b) { a > b ? b : a; }
+
+    template <class U>
+    U max(const U &a, const U &b) { a < b ? b : a; }
 }
