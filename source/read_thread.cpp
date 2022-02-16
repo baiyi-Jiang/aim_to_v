@@ -96,7 +96,7 @@ uint32_t NetInfo::parse_msg(const uint8_t *data, uint32_t len, int32_t fd, RecvM
     }
     }
     if (!index)
-        send_client_ack(msg.get_pkg_type(), ERROR_PARSE_MSG, fd);
+        send_client_ack(recv_msg_type::CLIENT_ACK_SEND, ERROR_PARSE_MSG, fd);
     return index;
 }
 
@@ -517,14 +517,14 @@ uint32_t NetInfo::on_msg_send(uint32_t guid, const uint8_t *data, uint32_t len, 
     auto conn_itor = conn_user_map.find(fd);
     if (conn_itor == conn_user_map.end() || conn_itor->second != guid)
     {
-        send_client_ack(recv_msg_type::CLIENT_MSG_SEND, ERROR_USER_NOT_EXIST_OR_SEND_GUID, fd);
+        send_client_ack(recv_msg_type::CLIENT_MSG_SEND_ACK, ERROR_USER_NOT_EXIST_OR_SEND_GUID, fd);
     }
     std::shared_ptr<MsgInfo> msg = std::make_shared<MsgInfo>();
     uint32_t index = msg->from_data(data, len);
     if (!index)
         return index;
     msg_list.push_back(msg);
-    send_client_ack(recv_msg_type::CLIENT_MSG_SEND, ERROR_OK, fd);
+    send_client_ack(recv_msg_type::CLIENT_MSG_SEND_ACK, ERROR_OK, fd);
     return index;
 }
 
@@ -630,7 +630,7 @@ uint32_t NetInfo::on_phone_unique(std::string acount)
 
 void NetInfo::send_client_ack(uint16_t msg_type, uint16_t ack_type, int32_t fd)
 {
-    ClientAck ack;
+    ClientAck ack((recv_msg_type::msg_type)msg_type);
     ack.err_no = ack_type;
     ack.make_pkg((uint8_t *)send_buf, MAXBUFSIZE);
     send_msg(fd, (uint8_t *)send_buf, recv_msg_head_length + ack.get_sub_pkg_data_length());
@@ -870,7 +870,7 @@ void *common::read_thread(void *arg)
                             (sender->permissions == group_permission::SEND_MSG_COUNT_LIMIT_10 && sender->msg_count > 10) ||
                             sender->permissions == group_permission::CANT_SEND_MSG)
                         {
-                            net_info.send_client_ack(recv_msg_type::CLIENT_MSG_SEND, ERROR_GROUP_MSG_LIMIT, net_info.user_conn_map[msg_t->send_guid]);
+                            net_info.send_client_ack(recv_msg_type::CLIENT_MSG_SEND_ACK, ERROR_GROUP_MSG_LIMIT, net_info.user_conn_map[msg_t->send_guid]);
                             net_info.msg_list.pop_front();
                             continue;
                         }

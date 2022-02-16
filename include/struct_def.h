@@ -84,8 +84,10 @@ struct recv_msg_type
         CLIENT_USER_INFO_ACK = 10060,          //回复联系人信息
         CLIENT_GROUP_INFO_ACK = 10061,         //回复群组信息
         CLIENT_USER_INFO_BRIEF_NOTIFY = 10062, //推送联系人简略信息
-        CLIENT_MSG_SEND = 10090,               //发送消息
+        CLIENT_MSG_SEND_ACK = 10090,           //发送消息回包
         CLIENT_MSG_LIST_ACK = 10091,           //回复聊天记录
+        CLIENT_MSG_SEND = 20090,               //发送消息
+        CLIENT_ACK_SEND = 20001,               //一般消息回包
         RECV_MSG_TYPE_MAX
     };
 };
@@ -660,7 +662,11 @@ public:
 class ClientAck : public RecvMsgPkg
 {
 public:
-    ClientAck() : RecvMsgPkg(0, recv_msg_type::CLIENT_MSG_SEND)
+    ClientAck() : RecvMsgPkg(0, recv_msg_type::CLIENT_ACK_SEND)
+    {
+        err_no = 0;
+    }
+    ClientAck(recv_msg_type::msg_type type) : RecvMsgPkg(0, type)
     {
         err_no = 0;
     }
