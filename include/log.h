@@ -28,7 +28,7 @@ public:
 
 private:
     log_level print_level_ = LOG_MAX;
-    FILE *fp_;
+    FILE *fp_ = nullptr;
     std::string log_time_str_;
 };
 
