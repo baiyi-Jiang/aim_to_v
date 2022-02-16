@@ -99,4 +99,4 @@ time_t string2time_t(const std::string string_time);
 std::string time_t2string(const time_t time_t_time);
 
 //在指定路径读取文件名
-bool getFilename(std::string &error_msg, std::vector<std::string> &tempvector);
+bool getFilename(std::string &file_path, std::string file_suffix, std::vector<std::string> &tempvector, std::string &error_msg);
