@@ -51,13 +51,13 @@ public:
     void set_last_logout_time(uint32_t time) { last_logout_time = time; }
     void set_sex(uint8_t s) { sex = s; }
     void set_age(uint8_t a) { age = a; }
-    void set_name(std::string& s) { memcpy(name, s.c_str(), std::min(sizeof(name), s.size())); }
-    void set_phone(std::string& s) { memcpy(phone, s.c_str(), std::min(sizeof(phone), s.size())); }
-    void set_qq(std::string& s) { memcpy(qq, s.c_str(), std::min(sizeof(qq), s.size())); }
-    void set_wechat(std::string& s) { memcpy(wechat, s.c_str(), std::min(sizeof(wechat), s.size())); }
-    void set_eamil(std::string& s) { memcpy(eamil, s.c_str(), std::min(sizeof(eamil), s.size())); }
-    void set_city(std::string& s) { memcpy(city, s.c_str(), std::min(sizeof(city), s.size())); }
-    void set_passwd(std::string& s) { passwd = std::hash<std::string>{}(s); }
+    void set_name(const std::string& s) { memcpy(name, s.c_str(), std::min(sizeof(name), s.size())); }
+    void set_phone(const std::string& s) { memcpy(phone, s.c_str(), std::min(sizeof(phone), s.size())); }
+    void set_qq(const std::string& s) { memcpy(qq, s.c_str(), std::min(sizeof(qq), s.size())); }
+    void set_wechat(const std::string& s) { memcpy(wechat, s.c_str(), std::min(sizeof(wechat), s.size())); }
+    void set_eamil(const std::string& s) { memcpy(eamil, s.c_str(), std::min(sizeof(eamil), s.size())); }
+    void set_city(const std::string& s) { memcpy(city, s.c_str(), std::min(sizeof(city), s.size())); }
+    void set_passwd(const std::string& s) { passwd = std::hash<std::string>{}(s); }
 
     bool on_add_msg(std::shared_ptr<MsgInfo> &msg);
     bool on_delete_msg(uint32_t recv_guid, uint32_t msg_num);
