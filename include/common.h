@@ -33,6 +33,9 @@
 #include "error_def.h"
 
 #define Unused(parm) (void)parm
+#undef min
+#undef max
+
 namespace common
 {
     uint32_t get_time_sec();
@@ -100,9 +103,15 @@ namespace common
     //在指定路径读取文件名
     bool getFilename(const std::string &file_path, const std::string &file_suffix, std::vector<std::string> &tempvector, std::string &error_msg);
 
-    template <class U>
-    U min(const U &a, const U &b) { a > b ? b : a; }
+    template<typename T1, typename T2>
+    auto min(const T1& a, const T2& b) -> decltype(a > b ? b : a)
+    {
+        return a > b ? b : a;
+    }
 
-    template <class U>
-    U max(const U &a, const U &b) { a < b ? b : a; }
+    template<typename T1, typename T2>
+    auto max(const T1& a, const T2& b) -> decltype(a < b ? b : a)
+    {
+        return a < b ? b : a;
+    }
 }
