@@ -45,7 +45,7 @@ struct conninfo
     std::map<ipport, peerinfo> peer; //对方信息
 };
 
-enum sex_type : uint8_t
+enum class SexType : uint8_t
 {
     MALE = 0x00,
     FEMALE,
