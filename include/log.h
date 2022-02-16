@@ -18,7 +18,7 @@ class LogSystem
 public:
     LogSystem()
     {
-        log_time_str_ = time_t2string(time(0));
+        log_time_str_ = common::time_t2string(time(0));
     }
     ~LogSystem() {}
 

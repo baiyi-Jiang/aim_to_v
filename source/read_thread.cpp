@@ -119,7 +119,7 @@ uint32_t NetInfo::on_acount_add(const uint8_t *data, uint32_t len, int32_t fd)
         users_map.erase(user_itor);
     }
     uint32_t user_guid = user.get_user_guid();
-    user.set_reg_time(get_time_sec());
+    user.set_reg_time(common::get_time_sec());
     user.on_set_online_status(user_status::STATUS_ON_LINE);
     users.emplace_back(user);
     users_map[user_guid] = std::prev(users.end());
@@ -258,7 +258,7 @@ uint32_t NetInfo::on_acount_login(const uint8_t *data, uint32_t len, int32_t fd)
         auto user_itor = users_map.find(phone_hash_map[phone_hash]);
         if (user_itor != users_map.end())
         {
-            user_itor->second->set_last_login_time(get_time_sec());
+            user_itor->second->set_last_login_time(common::get_time_sec());
             user_itor->second->set_last_logout_time(user_itor->second->get_last_login_time());
             user_itor->second->on_set_online_status(user_status::STATUS_ON_LINE);
         }
@@ -282,7 +282,7 @@ uint32_t NetInfo::on_acount_logout(const uint8_t *data, uint32_t len, int32_t fd
     if (user_itor != users_map.end())
     {
         user_itor->second->on_set_online_status(user_status::STATUS_OFF_LINE);
-        user_itor->second->set_last_logout_time(get_time_sec());
+        user_itor->second->set_last_logout_time(common::get_time_sec());
     }
     send_client_ack(recv_msg_type::CLIENT_ACOUNT_LOGOUT_ACK, ERROR_OK, fd);
     return index;
@@ -637,7 +637,7 @@ void NetInfo::send_client_ack(uint16_t msg_type, uint16_t ack_type, int32_t fd)
 }
 
 //读数据线程
-void *read_thread(void *arg)
+void *common::read_thread(void *arg)
 {
     common_info *comm = static_cast<common_info *>(arg);
     if (!comm)
@@ -715,7 +715,7 @@ void *read_thread(void *arg)
                     {
                         log_print(LOG_INFO, u8"ReadThread, recv connect:%d,errno:%d", msg.fd, errno);
                         //把socket设置为非阻塞方式
-                        setnonblocking(msg.fd);
+                        common::setnonblocking(msg.fd);
                         //设置描述符信息和数组下标信息
                         ev.data.fd = msg.fd;
                         //设置用于注测的读操作事件

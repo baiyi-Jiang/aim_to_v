@@ -66,7 +66,7 @@ int32_t main(int32_t argc, char *argv[])
 
     //设置为运行状态
     comm.running = true;
-    check_big_data();
+    common::check_big_data();
 
     //创建管道
     ret = pipe(fd);
@@ -80,7 +80,7 @@ int32_t main(int32_t argc, char *argv[])
     comm.conn_info.wfd = fd[1];
 
     //读端设置为非阻塞方式
-    setnonblocking(comm.conn_info.rfd);
+    common::setnonblocking(comm.conn_info.rfd);
 
     //创建线程时采用的参数
     pthread_attr_t attr;
@@ -89,7 +89,7 @@ int32_t main(int32_t argc, char *argv[])
     //pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);        //设置分离的线程
 
     //创建接收连接线程
-    ret = pthread_create(&iAcceptThreadId, &attr, accept_thread, &comm);
+    ret = pthread_create(&iAcceptThreadId, &attr, common::accept_thread, &comm);
     if (ret != 0)
     {
         log_print(LOG_ERROR, u8"main, pthread_create AcceptThread fail:%d,errno:%d", ret, errno);
@@ -100,7 +100,7 @@ int32_t main(int32_t argc, char *argv[])
     }
 
     //创建接收连接线程
-    ret = pthread_create(&iReadThreadId, &attr, read_thread, &comm);
+    ret = pthread_create(&iReadThreadId, &attr, common::read_thread, &comm);
     if (ret != 0)
     {
         log_print(LOG_ERROR, u8"main, pthread_create ReadThread fail:%d,errno:%d", ret, errno);

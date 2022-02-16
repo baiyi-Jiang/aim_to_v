@@ -16,11 +16,11 @@ uint32_t GroupInfo::from_data(uint32_t global_guid, const uint8_t *data, uint32_
     {
         return index;
     }
-    index += memcpy_u(group_guid, data + index);
+    index += common::memcpy_u(group_guid, data + index);
     if (0 == group_guid)
         group_guid = ++global_guid;
-    index += memcpy_u(member_count, data + index);
-    index += memcpy_u(learder_guid, data + index);
+    index += common::memcpy_u(member_count, data + index);
+    index += common::memcpy_u(learder_guid, data + index);
     group_member_info info;
     uint32_t info_length = info.length();
     if (member_count * info_length > data_len - index)
@@ -43,9 +43,9 @@ uint32_t GroupInfo::to_data(uint8_t *data, const uint32_t data_len)
     {
         return index;
     }
-    index += memcpy_u(data + index, group_guid);
-    index += memcpy_u(data + index, member_count);
-    index += memcpy_u(data + index, learder_guid);
+    index += common::memcpy_u(data + index, group_guid);
+    index += common::memcpy_u(data + index, member_count);
+    index += common::memcpy_u(data + index, learder_guid);
     group_member_info info;
     if (member_count * info.length() > data_len - index)
     {

@@ -3,7 +3,7 @@
 #include "log.h"
 
 //接收连接线程
-void *accept_thread(void *arg)
+void *common::accept_thread(void *arg)
 {
     common_info *comm = static_cast<common_info *>(arg);
     if (!comm)
@@ -51,9 +51,9 @@ void *accept_thread(void *arg)
     }
 
     //把监听socket设置为非阻塞方式
-    setnonblocking(listenfd);
+    common::setnonblocking(listenfd);
     //设置监听socket为端口重用
-    setreuseaddr(listenfd);
+    common::setreuseaddr(listenfd);
 
     //设置与要处理的事件相关的文件描述符
     ev.data.fd = listenfd;
@@ -146,9 +146,9 @@ void *accept_thread(void *arg)
                                 }
 
                                 //把监听socket设置为非阻塞方式
-                                setnonblocking(listenfd);
+                                common::setnonblocking(listenfd);
                                 //设置监听socket为端口重用
-                                setreuseaddr(listenfd);
+                                common::setreuseaddr(listenfd);
 
                                 //设置与要处理的事件相关的文件描述符
                                 ev.data.fd = listenfd;
@@ -199,9 +199,9 @@ void *accept_thread(void *arg)
                     }
 
                     //把监听socket设置为非阻塞方式
-                    setnonblocking(listenfd);
+                    common::setnonblocking(listenfd);
                     //设置监听socket为端口重用
-                    setreuseaddr(listenfd);
+                    common::setreuseaddr(listenfd);
 
                     //设置与要处理的事件相关的文件描述符
                     ev.data.fd = listenfd;

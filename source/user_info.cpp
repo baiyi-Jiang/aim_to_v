@@ -26,19 +26,19 @@ uint32_t UserInfo::from_data(uint32_t global_guid, const uint8_t *data, uint32_t
     {
         return index;
     }
-    index += memcpy_u(user_guid, data + index);
+    index += common::memcpy_u(user_guid, data + index);
     if (0 == user_guid)
         user_guid = ++global_guid;
-    index += memcpy_u(icon_guid, data + index);
-    index += memcpy_u(reg_time, data + index);
+    index += common::memcpy_u(icon_guid, data + index);
+    index += common::memcpy_u(reg_time, data + index);
     if (0 == reg_time)
-        reg_time = get_time_sec();
-    index += memcpy_u(last_login_time, data + index);
+        reg_time = common::get_time_sec();
+    index += common::memcpy_u(last_login_time, data + index);
     if (0 == last_login_time)
-        last_login_time = get_time_sec();
-    index += memcpy_u(last_logout_time, data + index);
+        last_login_time = common::get_time_sec();
+    index += common::memcpy_u(last_logout_time, data + index);
     if (0 == last_logout_time)
-        last_logout_time = get_time_sec();
+        last_logout_time = common::get_time_sec();
     age = data[index++];
     sex = data[index++];
     online_status = data[index++];
@@ -55,8 +55,8 @@ uint32_t UserInfo::from_data(uint32_t global_guid, const uint8_t *data, uint32_t
     index += sizeof(eamil);
     memcpy(city, data + index, sizeof(city));
     index += sizeof(city);
-    index += memcpy_u(passwd, data + index);
-    index += memcpy_u(custom_length, data + index);
+    index += common::memcpy_u(passwd, data + index);
+    index += common::memcpy_u(custom_length, data + index);
     if (data_len < custom_length + index)
     {
         log_print(LOG_ERROR,u8"数据不完整！");
@@ -103,15 +103,15 @@ uint32_t UserInfo::to_data(uint8_t *data, const uint32_t len)
     {
         return index;
     }
-    index += memcpy_u(data + index, user_guid);
-    index += memcpy_u(data + index, icon_guid);
-    index += memcpy_u(data + index, reg_time);
-    index += memcpy_u(data + index, last_login_time);
-    index += memcpy_u(data + index, last_logout_time);
-    index += memcpy_u(data + index, age);
-    index += memcpy_u(data + index, sex);
-    index += memcpy_u(data + index, online_status);
-    index += memcpy_u(data + index, owner_groups);
+    index += common::memcpy_u(data + index, user_guid);
+    index += common::memcpy_u(data + index, icon_guid);
+    index += common::memcpy_u(data + index, reg_time);
+    index += common::memcpy_u(data + index, last_login_time);
+    index += common::memcpy_u(data + index, last_logout_time);
+    index += common::memcpy_u(data + index, age);
+    index += common::memcpy_u(data + index, sex);
+    index += common::memcpy_u(data + index, online_status);
+    index += common::memcpy_u(data + index, owner_groups);
     memcpy(data + index, name, sizeof(name));
     index += sizeof(name);
     memcpy(data + index, phone, sizeof(phone));
@@ -125,8 +125,8 @@ uint32_t UserInfo::to_data(uint8_t *data, const uint32_t len)
     memcpy(data + index, city, sizeof(city));
     index += sizeof(city);
     passwd = 0U; //不向外界输出密码
-    index += memcpy_u(data + index, passwd);
-    index += memcpy_u(data + index, custom_length);
+    index += common::memcpy_u(data + index, passwd);
+    index += common::memcpy_u(data + index, custom_length);
     index += custom.to_data(data + index, len - index);
     return index;
 }
@@ -211,7 +211,7 @@ bool UserInfo::on_join_group(uint32_t guid)
     auto itor = join_groups.find(guid);
     if (itor == join_groups.end())
     {
-        join_groups[guid] = get_time_sec();
+        join_groups[guid] = common::get_time_sec();
         return true;
     }
     return false;
@@ -233,7 +233,7 @@ bool UserInfo::on_update_group_active(uint32_t guid)
     auto itor = join_groups.find(guid);
     if (itor != join_groups.end())
     {
-        itor->second = get_time_sec();
+        itor->second = common::get_time_sec();
         return true;
     }
     return false;
@@ -244,7 +244,7 @@ bool UserInfo::on_add_friend(uint32_t guid)
     auto itor = friends.find(guid);
     if (itor == friends.end())
     {
-        friends[guid] = get_time_sec();
+        friends[guid] = common::get_time_sec();
         return true;
     }
     return false;
@@ -266,7 +266,7 @@ bool UserInfo::on_update_friend_active(uint32_t guid)
     auto itor = friends.find(guid);
     if (itor != friends.end())
     {
-        itor->second = get_time_sec();
+        itor->second = common::get_time_sec();
         return true;
     }
     return false;

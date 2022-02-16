@@ -134,10 +134,10 @@ struct group_member_info
         uint32_t index = 0;
         if (!data || len < length())
             return index;
-        index += memcpy_u(group_guid, data + index);
-        index += memcpy_u(user_guid, data + index);
-        index += memcpy_u(icon_guid, data + index);
-        index += memcpy_u(msg_count, data + index);
+        index += common::memcpy_u(group_guid, data + index);
+        index += common::memcpy_u(user_guid, data + index);
+        index += common::memcpy_u(icon_guid, data + index);
+        index += common::memcpy_u(msg_count, data + index);
         permissions = data[index++];
         job = data[index++];
         memset(name, '\0', sizeof(name));
@@ -161,12 +161,12 @@ struct group_member_info
         uint32_t index = 0;
         if (!data || len < length())
             return index;
-        index += memcpy_u(data + index, group_guid);
-        index += memcpy_u(data + index, user_guid);
-        index += memcpy_u(data + index, icon_guid);
-        index += memcpy_u(data + index, msg_count);
-        index += memcpy_u(data + index, permissions);
-        index += memcpy_u(data + index, job);
+        index += common::memcpy_u(data + index, group_guid);
+        index += common::memcpy_u(data + index, user_guid);
+        index += common::memcpy_u(data + index, icon_guid);
+        index += common::memcpy_u(data + index, msg_count);
+        index += common::memcpy_u(data + index, permissions);
+        index += common::memcpy_u(data + index, job);
         memcpy(data + index, name, sizeof(name));
         index += sizeof(name);
         return index;
@@ -200,9 +200,9 @@ public:
         uint32_t index = 0;
         if (!src_data || len < head_length())
             return index;
-        index += memcpy_u(pkg_sender_guid, src_data + index);
-        index += memcpy_u(pkg_type, src_data + index);
-        index += memcpy_u(sub_pkg_data_length, src_data + index);
+        index += common::memcpy_u(pkg_sender_guid, src_data + index);
+        index += common::memcpy_u(pkg_type, src_data + index);
+        index += common::memcpy_u(sub_pkg_data_length, src_data + index);
         if (len - head_length() < sub_pkg_data_length)
             return index;
         sub_pkg_data = (uint8_t *)(src_data + index);
@@ -221,9 +221,9 @@ public:
         uint32_t index = 0;
         if (!data || len < head_length())
             return index;
-        index += memcpy_u(data + index, pkg_sender_guid);
-        index += memcpy_u(data + index, pkg_type);
-        index += memcpy_u(data + index, sub_pkg_data_length);
+        index += common::memcpy_u(data + index, pkg_sender_guid);
+        index += common::memcpy_u(data + index, pkg_type);
+        index += common::memcpy_u(data + index, sub_pkg_data_length);
         return index;
     }
     uint32_t make_pkg(uint8_t *data, const uint32_t len)
@@ -297,11 +297,11 @@ public:
         uint32_t index = 0;
         if (!data || len < length())
             return index;
-        index += memcpy_u(send_guid, data + index);
-        index += memcpy_u(recv_guid, data + index);
-        index += memcpy_u(time_sec, data + index);
-        index += memcpy_u(msg_length, data + index);
-        index += memcpy_u(msg_num, data + index);
+        index += common::memcpy_u(send_guid, data + index);
+        index += common::memcpy_u(recv_guid, data + index);
+        index += common::memcpy_u(time_sec, data + index);
+        index += common::memcpy_u(msg_length, data + index);
+        index += common::memcpy_u(msg_num, data + index);
         msg_type = data[index++];
         keep1 = data[index++];
         if (len - length() < msg_length)
@@ -328,13 +328,13 @@ public:
         uint32_t index = 0;
         if (!data || len < length() + msg.size())
             return index;
-        index += memcpy_u(data + index, send_guid);
-        index += memcpy_u(data + index, recv_guid);
-        index += memcpy_u(data + index, time_sec);
-        index += memcpy_u(data + index, msg_length);
-        index += memcpy_u(data + index, msg_num);
-        index += memcpy_u(data + index, msg_type);
-        index += memcpy_u(data + index, keep1);
+        index += common::memcpy_u(data + index, send_guid);
+        index += common::memcpy_u(data + index, recv_guid);
+        index += common::memcpy_u(data + index, time_sec);
+        index += common::memcpy_u(data + index, msg_length);
+        index += common::memcpy_u(data + index, msg_num);
+        index += common::memcpy_u(data + index, msg_type);
+        index += common::memcpy_u(data + index, keep1);
         memcpy(data + index, msg.c_str(), msg.size());
         index += (uint32_t)msg.size();
         return index;
@@ -361,7 +361,7 @@ public:
         uint32_t index = 0;
         if (!data || len < length())
             return index;
-        index += memcpy_u(user_guid, data + index);
+        index += common::memcpy_u(user_guid, data + index);
         return index;
     }
     uint32_t length() override
@@ -374,7 +374,7 @@ public:
         uint32_t index = 0;
         if (!data || len < length())
             return index;
-        index += memcpy_u(data + index, user_guid);
+        index += common::memcpy_u(data + index, user_guid);
         return index;
     }
     uint32_t user_guid;
@@ -392,7 +392,7 @@ public:
         uint32_t index = 0;
         if (!data || len < length())
             return index;
-        index += memcpy_u(user_guid, data + index);
+        index += common::memcpy_u(user_guid, data + index);
         return index;
     }
     uint32_t length() override
@@ -405,7 +405,7 @@ public:
         uint32_t index = 0;
         if (!data || len < length())
             return index;
-        index += memcpy_u(data + index, user_guid);
+        index += common::memcpy_u(data + index, user_guid);
         return index;
     }
     uint32_t user_guid;
@@ -423,7 +423,7 @@ public:
         uint32_t index = 0;
         if (!data || len < length())
             return index;
-        index += memcpy_u(group_guid, data + index);
+        index += common::memcpy_u(group_guid, data + index);
         return index;
     }
     uint32_t length() override
@@ -436,7 +436,7 @@ public:
         uint32_t index = 0;
         if (!data || len < length())
             return index;
-        index += memcpy_u(data + index, group_guid);
+        index += common::memcpy_u(data + index, group_guid);
         return index;
     }
     uint32_t group_guid;
@@ -469,13 +469,13 @@ public:
         uint32_t index = 0;
         if (!data || len < length())
             return index;
-        index += memcpy_u(group_guid, data + index);
-        index += memcpy_u(operate_guid, data + index);
-        index += memcpy_u(target_guid, data + index);
-        index += memcpy_u(opreadte_type, data + index);
-        index += memcpy_u(permission, data + index);
-        index += memcpy_u(keep1, data + index);
-        index += memcpy_u(keep2, data + index);
+        index += common::memcpy_u(group_guid, data + index);
+        index += common::memcpy_u(operate_guid, data + index);
+        index += common::memcpy_u(target_guid, data + index);
+        index += common::memcpy_u(opreadte_type, data + index);
+        index += common::memcpy_u(permission, data + index);
+        index += common::memcpy_u(keep1, data + index);
+        index += common::memcpy_u(keep2, data + index);
         return index;
     }
     uint32_t length() override
@@ -494,13 +494,13 @@ public:
         uint32_t index = 0;
         if (!data || len < length())
             return index;
-        index += memcpy_u(data + index, group_guid);
-        index += memcpy_u(data + index, operate_guid);
-        index += memcpy_u(data + index, target_guid);
-        index += memcpy_u(data + index, opreadte_type);
-        index += memcpy_u(data + index, permission);
-        index += memcpy_u(data + index, keep1);
-        index += memcpy_u(data + index, keep2);
+        index += common::memcpy_u(data + index, group_guid);
+        index += common::memcpy_u(data + index, operate_guid);
+        index += common::memcpy_u(data + index, target_guid);
+        index += common::memcpy_u(data + index, opreadte_type);
+        index += common::memcpy_u(data + index, permission);
+        index += common::memcpy_u(data + index, keep1);
+        index += common::memcpy_u(data + index, keep2);
         return index;
     }
     uint32_t group_guid;
@@ -525,8 +525,8 @@ public:
         uint32_t index = 0;
         if (!data || len < length())
             return index;
-        index += memcpy_u(group_guid, data + index);
-        index += memcpy_u(operate_guid, data + index);
+        index += common::memcpy_u(group_guid, data + index);
+        index += common::memcpy_u(operate_guid, data + index);
         return index;
     }
     uint32_t length() override
@@ -540,8 +540,8 @@ public:
         uint32_t index = 0;
         if (!data || len < length())
             return index;
-        index += memcpy_u(data + index, group_guid);
-        index += memcpy_u(data + index, operate_guid);
+        index += common::memcpy_u(data + index, group_guid);
+        index += common::memcpy_u(data + index, operate_guid);
         return index;
     }
     uint32_t group_guid;
@@ -563,7 +563,7 @@ public:
             return index;
         memcpy(phone, data + index, sizeof(phone));
         index += sizeof(phone);
-        index += memcpy_u(passwd, data + index);
+        index += common::memcpy_u(passwd, data + index);
         return index;
     }
     uint32_t length() override
@@ -579,7 +579,7 @@ public:
             return index;
         memcpy(data + index, phone, sizeof(phone));
         index += sizeof(phone);
-        index += memcpy_u(data + index, passwd);
+        index += common::memcpy_u(data + index, passwd);
         return index;
     }
     uint8_t phone[16] = {0}; //电话号码
@@ -598,7 +598,7 @@ public:
         uint32_t index = 0;
         if (!data || len < length())
             return index;
-        index += memcpy_u(user_guid, data + index);
+        index += common::memcpy_u(user_guid, data + index);
         return index;
     }
     uint32_t length() override
@@ -611,7 +611,7 @@ public:
         uint32_t index = 0;
         if (!data || len < length())
             return index;
-        index += memcpy_u(data + index, user_guid);
+        index += common::memcpy_u(data + index, user_guid);
         return index;
     }
     uint32_t user_guid;
@@ -662,7 +662,7 @@ public:
         uint32_t index = 0;
         if (!data || len < length())
             return index;
-        index += memcpy_u(err_no, data + index);
+        index += common::memcpy_u(err_no, data + index);
         return index;
     }
     uint32_t length() override
@@ -675,7 +675,7 @@ public:
         uint32_t index = 0;
         if (!data || len < length())
             return index;
-        index += memcpy_u(data + index, err_no);
+        index += common::memcpy_u(data + index, err_no);
         return index;
     }
     uint16_t err_no;
@@ -696,11 +696,11 @@ public:
         uint32_t index = 0;
         if (!data || len < length())
             return index;
-        index += memcpy_u(user_guid, data + index);
-        index += memcpy_u(icon_guid, data + index);
+        index += common::memcpy_u(user_guid, data + index);
+        index += common::memcpy_u(icon_guid, data + index);
         memcpy(name, data + index, sizeof(name));
         index += sizeof(name);
-        index += memcpy_u(online_status, data + index);
+        index += common::memcpy_u(online_status, data + index);
         return index;
     }
     uint32_t length() override
@@ -716,11 +716,11 @@ public:
         uint32_t index = 0;
         if (!data || len < length())
             return index;
-        index += memcpy_u(data + index, user_guid);
-        index += memcpy_u(data + index, icon_guid);
+        index += common::memcpy_u(data + index, user_guid);
+        index += common::memcpy_u(data + index, icon_guid);
         memcpy(data + index, name, sizeof(name));
         index += sizeof(name);
-        index += memcpy_u(data + index, online_status);
+        index += common::memcpy_u(data + index, online_status);
         return index;
     }
     uint32_t user_guid;

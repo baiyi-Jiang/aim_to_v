@@ -7,7 +7,7 @@ bool CustomData::from_data(const uint8_t *data, const uint32_t len)
         return false;
     std::string str_data((const char *)data, len);
     std::vector<std::string> vec;
-    split_str(str_data, vec);
+    common::split_str(str_data, vec);
     if (vec.size() % 2 != 0)
         return false;
     bool is_key = true;
@@ -17,16 +17,16 @@ bool CustomData::from_data(const uint8_t *data, const uint32_t len)
     {
         if (is_key)
         {
-            key = custom_get_str(item, "k:");
+            key = common::custom_get_str(item, "k:");
         }
         else
         {
             if (!key.empty())
             {
-                str = custom_get_str(item, "s:");
+                str = common::custom_get_str(item, "s:");
                 if (str.empty())
                 {
-                    num = custom_get_num(item, "n:");
+                    num = common::custom_get_num(item, "n:");
                     if (!num)
                         num_map[key] = num;
                 }
@@ -94,7 +94,7 @@ uint32_t CustomData::to_data(uint8_t *data, const uint32_t len)
             index = 0;
             return index;
         }
-        index += memcpy_u(data + index, item.second);
+        index += common::memcpy_u(data + index, item.second);
         is_append = true;
     }
     if (length() != index)

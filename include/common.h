@@ -33,70 +33,70 @@
 #include "error_def.h"
 
 #define Unused(parm) (void)parm
+namespace common
+{
+    uint32_t get_time_sec();
 
-uint32_t get_time_sec();
+    void check_big_data();
 
-void check_big_data();
-
-bool get_is_big_data();
+    bool get_is_big_data();
 
 #ifndef WIN32
-void setnonblocking(int32_t sock);
+    void setnonblocking(int32_t sock);
 
-void setreuseaddr(int32_t sock);
+    void setreuseaddr(int32_t sock);
 #endif
 
-template <class U>
-uint32_t memcpy_u(U &src_num, const uint8_t *data)
-{
-    if (!get_is_big_data())
+    template <class U>
+    uint32_t memcpy_u(U &src_num, const uint8_t *data)
     {
-        memcpy(&src_num, data, sizeof(U));
-    }
-    else
-    {
-        for (uint32_t i = 0; i < sizeof(U); ++i)
+        if (!get_is_big_data())
         {
-            memcpy(&src_num + (sizeof(U) - i - 1), data + i, 1);
+            memcpy(&src_num, data, sizeof(U));
         }
+        else
+        {
+            for (uint32_t i = 0; i < sizeof(U); ++i)
+            {
+                memcpy(&src_num + (sizeof(U) - i - 1), data + i, 1);
+            }
+        }
+        return sizeof(U);
     }
-    return sizeof(U);
-}
 
-template <class U>
-uint32_t memcpy_u(uint8_t *data, U &src_num)
-{
-    if (!get_is_big_data())
+    template <class U>
+    uint32_t memcpy_u(uint8_t *data, U &src_num)
     {
-        memcpy(data, &src_num, sizeof(U));
-    }
-    else
-    {
-        for (uint32_t i = 0; i < sizeof(U); ++i)
+        if (!get_is_big_data())
         {
-            memcpy(data + i, &src_num + (sizeof(U) - i - 1), 1);
+            memcpy(data, &src_num, sizeof(U));
         }
+        else
+        {
+            for (uint32_t i = 0; i < sizeof(U); ++i)
+            {
+                memcpy(data + i, &src_num + (sizeof(U) - i - 1), 1);
+            }
+        }
+        return sizeof(U);
     }
-    return sizeof(U);
-}
 
 #ifndef WIN32
-void *read_thread(void *arg);
+    void *read_thread(void *arg);
 
-void *accept_thread(void *arg);
+    void *accept_thread(void *arg);
 #endif
 
-void split_str(std::string src, std::vector<std::string>& vec);
+    void split_str(std::string src, std::vector<std::string> &vec);
 
-std::string custom_get_key(const std::string& src, const std::string& split_str);
+    std::string custom_get_str(const std::string &src, const std::string &split_str);
 
-std::string custom_get_str(const std::string& src, const std::string& split_str);
+    uint64_t custom_get_num(const std::string &src, const std::string &split_str);
 
-uint64_t custom_get_num(const std::string& src, const std::string& split_str);
+    time_t string2time_t(const std::string string_time);
 
-time_t string2time_t(const std::string string_time);
+    std::string time_t2string(const time_t time_t_time);
 
-std::string time_t2string(const time_t time_t_time);
-
-//在指定路径读取文件名
-bool getFilename(std::string &file_path, std::string file_suffix, std::vector<std::string> &tempvector, std::string &error_msg);
+    //在指定路径读取文件名
+    bool getFilename(std::string &file_path, std::string file_suffix, std::vector<std::string> &tempvector, std::string &error_msg);
+}

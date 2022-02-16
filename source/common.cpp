@@ -44,7 +44,7 @@ void LogSystem::log_print_v(log_level level, const char *file_name, int line_num
     vsnprintf(body.data(), body.size(), format, ap);
 #endif
     std::string buffer = std::string(body.data(), size);
-    std::string time_str = time_t2string(time(0));
+    std::string time_str = common::time_t2string(time(0));
     int32_t write_count = 0;
     switch (level)
     {
@@ -105,175 +105,178 @@ void LogSystem::log_print_v(log_level level, const char *file_name, int line_num
     }
 }
 
-union big_data
+namespace common
 {
-    uint32_t data;
-    uint8_t num;
-};
-bool is_big_data = false;
-
-void check_big_data()
-{
-    big_data da;
-    da.data = 1;
-    if (da.num != 1)
+    union big_data
     {
-        is_big_data = true;
+        uint32_t data;
+        uint8_t num;
+    };
+    bool is_big_data = false;
+
+    void check_big_data()
+    {
+        big_data da;
+        da.data = 1;
+        if (da.num != 1)
+        {
+            is_big_data = true;
+        }
     }
-}
 
-bool get_is_big_data()
-{
-    return is_big_data;
-}
+    bool get_is_big_data()
+    {
+        return is_big_data;
+    }
 
-uint32_t get_time_sec()
-{
-    return (uint32_t)time(0);
-}
+    uint32_t get_time_sec()
+    {
+        return (uint32_t)time(0);
+    }
 
 #ifndef WIN32
-void setnonblocking(int32_t sock)
-{
-    int32_t opts;
-    opts = fcntl(sock, F_GETFL);
-    if (opts < 0)
+    void setnonblocking(int32_t sock)
     {
-        perror("fcntl(sock,GETFL)");
-        exit(1);
-    }
-    opts = opts | O_NONBLOCK;
-    if (fcntl(sock, F_SETFL, opts) < 0)
-    {
-        perror("fcntl(sock,SETFL,opts)");
-        exit(1);
-    }
-}
-
-void setreuseaddr(int32_t sock)
-{
-    int32_t opt;
-    opt = 1;
-    if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(&opt)) < 0)
-    {
-        perror("setsockopt");
-        exit(1);
-    }
-}
-#endif
-
-void split_str(std::string src, std::vector<std::string> &vec)
-{
-    char *token = strtok((char *)src.c_str(), ",");
-    while (token != nullptr)
-    {
-        vec.push_back(token);
-        token = strtok(nullptr, ",");
-    }
-}
-
-std::string custom_get_str(const std::string &src, const std::string &split_str)
-{
-    std::string str;
-    if (src.size() > split_str.size() && strncmp(src.c_str(), split_str.c_str(), split_str.size()) == 0)
-    {
-        str = src.substr(2, src.size() - split_str.size());
-    }
-    return str;
-}
-
-uint64_t custom_get_num(const std::string &src, const std::string &split_str)
-{
-    uint64_t num = 0;
-    std::string str = custom_get_str(src, split_str);
-    if (!str.empty())
-        memcpy_u(num, (const uint8_t *)str.c_str());
-    return num;
-}
-
-// string 转换为time_t  时间格式为2014_03_28 18:25:26
-time_t string2time_t(const std::string string_time)
-{
-    tm tm1;
-    memset(&tm1, 0, sizeof(tm1));
-    time_t time1;
-    sscanf(string_time.c_str(), "%d_%d_%d %d:%d:%d",
-           &(tm1.tm_year),
-           &(tm1.tm_mon),
-           &(tm1.tm_mday),
-           &(tm1.tm_hour),
-           &(tm1.tm_min),
-           &(tm1.tm_sec));
-    tm1.tm_year -= 1900;
-    tm1.tm_mon -= 1;
-    time1 = mktime(&tm1);
-    return time1;
-}
-
-// time_t转换为string  时间格式为2014_03_28 18:25:26
-std::string time_t2string(const time_t time_t_time)
-{
-    char szTime[100] = {'\0'};
-    struct tm *ptm = localtime(&time_t_time);
-    ptm->tm_year += 1900;
-    ptm->tm_mon += 1;
-    sprintf(szTime, "%04d_%02d_%02d %02d:%02d:%02d",
-            ptm->tm_year,
-            ptm->tm_mon,
-            ptm->tm_mday,
-            ptm->tm_hour,
-            ptm->tm_min,
-            ptm->tm_sec);
-
-    std::string strTime = szTime;
-    return strTime;
-}
-
-int const MAX_STR_LEN = 200;
-
-//在指定路径读取文件名 file_suffix文件后缀名
-bool getFilename(std::string &file_path, std::string file_suffix, std::vector<std::string> &tempvector, std::string &error_msg)
-{
-    if (file_path.empty())
-        return false;
-#ifdef WIN32
-    char path[1024] = {0};
-    sprintf_s(path, "%s*.%s", file_path.c_str(), file_suffix.c_str());
-    _finddatai64_t file;
-    intptr_t longf;
-    if ((longf = _findfirsti64(path, &file)) == -1l)
-    {
-        error_msg = u8"在指定路径下没有找到文件";
-        return false;
-    }
-    else
-    {
-        do
+        int32_t opts;
+        opts = fcntl(sock, F_GETFL);
+        if (opts < 0)
         {
-            tempvector.push_back(file.name);
-        } while (_findnexti64(longf, &file) == 0);
+            perror("fcntl(sock,GETFL)");
+            exit(1);
+        }
+        opts = opts | O_NONBLOCK;
+        if (fcntl(sock, F_SETFL, opts) < 0)
+        {
+            perror("fcntl(sock,SETFL,opts)");
+            exit(1);
+        }
     }
-    _findclose(longf);
-#else
-    struct stat s;
-    lstat(file_path.c_str(), &s);
-    if (!S_ISDIR(s.st_mode))
+
+    void setreuseaddr(int32_t sock)
     {
-        return false;
-    }
-    struct dirent *filename;
-    DIR *dir;
-    dir = opendir(file_path.c_str());
-    if (nullptr == dir)
-        return false;
-    /* read all the files in the dir ~ */
-    while ((filename = readdir(dir)) != NULL)
-    {
-        if (strcmp(filename->d_name, ".") == 0 ||
-            strcmp(filename->d_name, "..") == 0)
-            continue;
-        tempvector.push_back(filename ->d_name);
+        int32_t opt;
+        opt = 1;
+        if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(&opt)) < 0)
+        {
+            perror("setsockopt");
+            exit(1);
+        }
     }
 #endif
-    return true;
+
+    void split_str(std::string src, std::vector<std::string> &vec)
+    {
+        char *token = strtok((char *)src.c_str(), ",");
+        while (token != nullptr)
+        {
+            vec.push_back(token);
+            token = strtok(nullptr, ",");
+        }
+    }
+
+    std::string custom_get_str(const std::string &src, const std::string &split_str)
+    {
+        std::string str;
+        if (src.size() > split_str.size() && strncmp(src.c_str(), split_str.c_str(), split_str.size()) == 0)
+        {
+            str = src.substr(2, src.size() - split_str.size());
+        }
+        return str;
+    }
+
+    uint64_t custom_get_num(const std::string &src, const std::string &split_str)
+    {
+        uint64_t num = 0;
+        std::string str = custom_get_str(src, split_str);
+        if (!str.empty())
+            memcpy_u(num, (const uint8_t *)str.c_str());
+        return num;
+    }
+
+    // string 转换为time_t  时间格式为2014_03_28 18:25:26
+    time_t string2time_t(const std::string string_time)
+    {
+        tm tm1;
+        memset(&tm1, 0, sizeof(tm1));
+        time_t time1;
+        sscanf(string_time.c_str(), "%d_%d_%d %d:%d:%d",
+               &(tm1.tm_year),
+               &(tm1.tm_mon),
+               &(tm1.tm_mday),
+               &(tm1.tm_hour),
+               &(tm1.tm_min),
+               &(tm1.tm_sec));
+        tm1.tm_year -= 1900;
+        tm1.tm_mon -= 1;
+        time1 = mktime(&tm1);
+        return time1;
+    }
+
+    // time_t转换为string  时间格式为2014_03_28 18:25:26
+    std::string time_t2string(const time_t time_t_time)
+    {
+        char szTime[100] = {'\0'};
+        struct tm *ptm = localtime(&time_t_time);
+        ptm->tm_year += 1900;
+        ptm->tm_mon += 1;
+        sprintf(szTime, "%04d_%02d_%02d %02d:%02d:%02d",
+                ptm->tm_year,
+                ptm->tm_mon,
+                ptm->tm_mday,
+                ptm->tm_hour,
+                ptm->tm_min,
+                ptm->tm_sec);
+
+        std::string strTime = szTime;
+        return strTime;
+    }
+
+    int const MAX_STR_LEN = 200;
+
+    //在指定路径读取文件名 file_suffix文件后缀名
+    bool getFilename(std::string &file_path, std::string file_suffix, std::vector<std::string> &tempvector, std::string &error_msg)
+    {
+        if (file_path.empty())
+            return false;
+#ifdef WIN32
+        char path[1024] = {0};
+        sprintf_s(path, "%s*.%s", file_path.c_str(), file_suffix.c_str());
+        _finddatai64_t file;
+        intptr_t longf;
+        if ((longf = _findfirsti64(path, &file)) == -1l)
+        {
+            error_msg = u8"在指定路径下没有找到文件";
+            return false;
+        }
+        else
+        {
+            do
+            {
+                tempvector.push_back(file.name);
+            } while (_findnexti64(longf, &file) == 0);
+        }
+        _findclose(longf);
+#else
+        struct stat s;
+        lstat(file_path.c_str(), &s);
+        if (!S_ISDIR(s.st_mode))
+        {
+            return false;
+        }
+        struct dirent *filename;
+        DIR *dir;
+        dir = opendir(file_path.c_str());
+        if (nullptr == dir)
+            return false;
+        /* read all the files in the dir ~ */
+        while ((filename = readdir(dir)) != NULL)
+        {
+            if (strcmp(filename->d_name, ".") == 0 ||
+                strcmp(filename->d_name, "..") == 0)
+                continue;
+            tempvector.push_back(filename->d_name);
+        }
+#endif
+        return true;
+    }
 }
