@@ -115,7 +115,10 @@ uint32_t NetInfo::on_acount_add(const uint8_t *data, uint32_t len, int32_t fd)
     uint32_t err_no = on_phone_unique(user.get_phone());
     if (err_no != ERROR_OK)
     {
-        send_client_ack(recv_msg_type::CLIENT_ACOUNT_ADD_ACK, err_no, fd);
+        ClientAcountAddAck ack(0);
+        ack.err_no = err_no;
+        ack.make_pkg((uint8_t *)send_buf, MAXBUFSIZE);
+        send_msg(fd, (uint8_t *)send_buf, recv_msg_head_length + ack.get_sub_pkg_data_length());
         return index;
     }
     auto user_itor = users_map.find(user.get_user_guid());
@@ -154,7 +157,10 @@ uint32_t NetInfo::on_acount_add(const uint8_t *data, uint32_t len, int32_t fd)
     phone_hash_map[phone_hash] = user_guid;
     // log_print(LOG_DEBUG, u8"parse msg end,phone:%s, size:%d, phone_hash: %d,user_guid: %d!", phone.c_str(), phone.size(), phone_hash, user_guid);
 #endif
-    send_client_ack(recv_msg_type::CLIENT_ACOUNT_ADD_ACK, ERROR_OK, fd);
+    ClientAcountAddAck ack(user_guid);
+    ack.err_no = ERROR_OK;
+    ack.make_pkg((uint8_t *)send_buf, MAXBUFSIZE);
+    send_msg(fd, (uint8_t *)send_buf, recv_msg_head_length + ack.get_sub_pkg_data_length());
     return index;
 }
 

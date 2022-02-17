@@ -744,6 +744,42 @@ public:
     uint8_t online_status; //在线状态 //user_status
 };
 
+class ClientAcountAddAck : public RecvMsgPkg
+{
+public:
+    ClientAcountAddAck(uint32_t guid) : RecvMsgPkg(0, recv_msg_type::CLIENT_ACOUNT_ADD_ACK)
+    {
+        err_no = 0;
+        user_guid = guid;
+    }
+    uint32_t from_data(const uint8_t *data, const uint32_t len) override
+    {
+        uint32_t index = 0;
+        if (!data || len < length())
+            return index;
+        index += common::memcpy_u(err_no, data + index);
+        index += common::memcpy_u(user_guid, data + index);
+        return index;
+    }
+    uint32_t length() override
+    {
+        uint32_t length = sizeof(err_no);
+        length += sizeof(user_guid);
+        return length;
+    }
+    uint32_t to_data(uint8_t *data, const uint32_t len) override
+    {
+        uint32_t index = 0;
+        if (!data || len < length())
+            return index;
+        index += common::memcpy_u(data + index, err_no);
+        index += common::memcpy_u(data + index, user_guid);
+        return index;
+    }
+    uint16_t err_no;
+    uint32_t user_guid;
+};
+
 //全局运行信息
 struct common_info
 {
