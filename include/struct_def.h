@@ -579,7 +579,7 @@ public:
     uint32_t length() override
     {
         uint32_t length = sizeof(phone);
-        uint32_t length = sizeof(sha256);
+        length += sizeof(sha256);
         return length;
     }
     uint32_t to_data(uint8_t *data, const uint32_t len) override

@@ -57,6 +57,7 @@ public:
 private:
     void set_passwd(const std::string& s) { passwd = std::hash<std::string>{}(s); }
 
+public:
     bool on_add_msg(std::shared_ptr<MsgInfo> &msg);
     bool on_delete_msg(uint32_t recv_guid, uint32_t msg_num);
     bool clear_msg(uint32_t recv_guid);
