@@ -149,8 +149,10 @@ uint32_t NetInfo::on_acount_add(const uint8_t *data, uint32_t len, int32_t fd)
     }
     ptr->user_guid = user_guid;
 #else
+    //“123” 和“123\0\0\0”的hash不同
     size_t phone_hash = std::hash<std::string>{}(phone);
     phone_hash_map[phone_hash] = user_guid;
+    //log_print(LOG_DEBUG, u8"parse msg end,phone:%s, size:%d, phone_hash: %d,user_guid: %d!", phone.c_str(), phone.size(), phone_hash, user_guid);
 #endif
     send_client_ack(recv_msg_type::CLIENT_ACOUNT_ADD_ACK, ERROR_OK, fd);
     return index;
@@ -256,7 +258,7 @@ uint32_t NetInfo::on_acount_login(const uint8_t *data, uint32_t len, int32_t fd)
     uint32_t index = login.from_data(data, len);
     if (!index)
         return index;
-    std::string phone((const char *)login.phone);
+    std::string phone((const char *)login.phone, sizeof(login.phone));
     uint16_t err_no = on_login(phone, login.passwd);
     if (err_no == ERROR_OK)
     {
@@ -300,7 +302,7 @@ uint32_t NetInfo::on_acount_can_reg(const uint8_t *data, uint32_t len, int32_t f
     uint32_t index = reg.from_data(data, len);
     if (!index)
         return index;
-    uint32_t err_no = on_phone_unique(std::string((const char *)reg.phone));
+    uint32_t err_no = on_phone_unique(std::string((const char *)reg.phone, sizeof(reg.phone)));
     send_client_ack(recv_msg_type::CLIENT_ACOUNT_CAN_REG_ACK, err_no, fd);
     return index;
 }
@@ -563,7 +565,7 @@ int32_t NetInfo::send_msg(int32_t fd, uint8_t *data, uint32_t len)
     return nsend;
 }
 
-uint32_t NetInfo::on_login(std::string acount, size_t passwd)
+uint32_t NetInfo::on_login(const std::string& acount, size_t passwd)
 {
     uint32_t user_guid = 0;
 #ifdef USE_PHONE_TREE
@@ -582,6 +584,7 @@ uint32_t NetInfo::on_login(std::string acount, size_t passwd)
     user_guid = ptr->user_guid;
 #else
     size_t phone_hash = std::hash<std::string>{}(acount);
+    //log_print(LOG_DEBUG, u8"parse msg end,phone:%s,size:%d, phone_hash: %d!", acount.c_str(), acount.size(), phone_hash);
     auto itor = phone_hash_map.find(phone_hash);
     if (itor == phone_hash_map.end())
     {

@@ -15,7 +15,7 @@ static void sig_pro(int32_t signum)
 
 bool init()
 {
-    TheLogSystem::instance().set_print_log_level(LOG_INFO);
+    TheLogSystem::instance().set_print_log_level(LOG_DEBUG);
     return true;
 }
 
