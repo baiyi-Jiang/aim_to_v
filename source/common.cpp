@@ -236,14 +236,14 @@ namespace common
 
     int const MAX_STR_LEN = 200;
 
-    //在指定路径读取文件名 file_suffix文件后缀名
+    //在指定路径读取文件名 file_suffix文件后缀名(不带.)
     bool getFilename(const std::string &file_path, const std::string &file_suffix, std::vector<std::string> &tempvector, std::string &error_msg)
     {
         if (file_path.empty())
             return false;
 #ifdef WIN32
         char path[1024] = {0};
-        sprintf_s(path, "%s*.%s", file_path.c_str(), file_suffix.c_str());
+        sprintf_s(path, "%s/*.%s", file_path.c_str(), file_suffix.c_str());
         _finddatai64_t file;
         intptr_t longf;
         if ((longf = _findfirsti64(path, &file)) == -1l)
