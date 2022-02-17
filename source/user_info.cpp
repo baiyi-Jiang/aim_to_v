@@ -129,7 +129,8 @@ uint32_t UserInfo::to_data(uint8_t *data, const uint32_t len)
     index += sizeof(eamil);
     memcpy(data + index, city, sizeof(city));
     index += sizeof(city);
-    index += sizeof(sha256);//不向外界输出加密后密码
+    memcpy(data + index, sha256, sizeof(sha256));
+    index += sizeof(sha256);
     passwd = 0U; //不向外界输出密码
     index += common::memcpy_u(data + index, passwd);
     index += common::memcpy_u(data + index, custom_length);
