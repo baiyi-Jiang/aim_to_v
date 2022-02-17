@@ -152,7 +152,7 @@ uint32_t NetInfo::on_acount_add(const uint8_t *data, uint32_t len, int32_t fd)
     //“123” 和“123\0\0\0”的hash不同
     size_t phone_hash = std::hash<std::string>{}(phone);
     phone_hash_map[phone_hash] = user_guid;
-    //log_print(LOG_DEBUG, u8"parse msg end,phone:%s, size:%d, phone_hash: %d,user_guid: %d!", phone.c_str(), phone.size(), phone_hash, user_guid);
+    // log_print(LOG_DEBUG, u8"parse msg end,phone:%s, size:%d, phone_hash: %d,user_guid: %d!", phone.c_str(), phone.size(), phone_hash, user_guid);
 #endif
     send_client_ack(recv_msg_type::CLIENT_ACOUNT_ADD_ACK, ERROR_OK, fd);
     return index;
@@ -342,8 +342,7 @@ uint32_t NetInfo::on_group_add(const uint8_t *data, uint32_t len, int32_t fd)
                                   else
                                       member->job = group_member_info::GROUP_JOB_MEMBER;
                                   user_itor->second->on_join_group(member->group_guid);
-                                  return true;
-                              });
+                                  return true; });
     uint32_t group_guid = info.get_group_guid();
     groups.emplace_back(info);
     groups_map[group_guid] = std::prev(groups.end());
@@ -456,8 +455,7 @@ uint32_t NetInfo::on_group_delete(const uint8_t *data, uint32_t len, int32_t fd)
                                                  if (user_itor == users_map.end())
                                                      return false;
                                                  user_itor->second->on_leave_group(gd.group_guid);
-                                                 return true;
-                                             });
+                                                 return true; });
     groups.erase(group_itor->second);
     groups_map.erase(group_itor);
     operate_itor->second->on_delete_group();
@@ -539,7 +537,7 @@ uint32_t NetInfo::on_msg_send(uint32_t guid, const uint8_t *data, uint32_t len, 
 
 uint32_t NetInfo::on_msg_list_req()
 {
-    //TODO:待完善
+    // TODO:待完善
     return 0;
 }
 
@@ -560,13 +558,13 @@ int32_t NetInfo::send_msg(int32_t fd, uint8_t *data, uint32_t len)
         if (ret != 0)
         {
             log_print(LOG_ERROR, u8"ReadThread, epoll_ctl fail:%d,errno:%d.", ret, errno);
-            //close(fd);
+            // close(fd);
         }
     }
     return nsend;
 }
 
-uint32_t NetInfo::on_login(const std::string& acount, const std::string& sha256)
+uint32_t NetInfo::on_login(const std::string &acount, const std::string &sha256)
 {
     uint32_t user_guid = 0;
 #ifdef USE_PHONE_TREE
@@ -585,7 +583,7 @@ uint32_t NetInfo::on_login(const std::string& acount, const std::string& sha256)
     user_guid = ptr->user_guid;
 #else
     size_t phone_hash = std::hash<std::string>{}(acount);
-    //log_print(LOG_DEBUG, u8"parse msg end,phone:%s,size:%d, phone_hash: %d!", acount.c_str(), acount.size(), phone_hash);
+    // log_print(LOG_DEBUG, u8"phone:%s,size:%d, phone_hash: %d!", acount.c_str(), acount.size(), phone_hash);
     auto itor = phone_hash_map.find(phone_hash);
     if (itor == phone_hash_map.end())
     {
@@ -675,7 +673,7 @@ void *common::read_thread(void *arg)
     int32_t nread = 0;                               //读到的字节数
     ipport tIpPort;                                  //地址端口信息
     peerinfo tPeerInfo;                              //对方连接信息
-    std::map<int32_t, ipport> mIpPort;               //socket对应的对方地址端口信息
+    std::map<int32_t, ipport> mIpPort;               // socket对应的对方地址端口信息
     std::map<int32_t, ipport>::iterator itIpPort;    //临时迭代子
     std::map<ipport, peerinfo>::iterator itPeerInfo; //临时迭代子
     pipemsg msg;                                     //消息队列数据
@@ -817,7 +815,7 @@ void *common::read_thread(void *arg)
                             log_print(LOG_ERROR, u8"read data failed!");
                             buf_index = 0;
                         }
-                        //log_print(LOG_DEBUG, u8"parse msg end,nread: %d,buf_index: %d,read_index: %d!", nread, buf_index, read_index);
+                        // log_print(LOG_DEBUG, u8"parse msg end,nread: %d,buf_index: %d,read_index: %d!", nread, buf_index, read_index);
                     }
                     else if (nread < 0) //读取失败
                     {
@@ -851,7 +849,7 @@ void *common::read_thread(void *arg)
                 if (ret != 0)
                 {
                     log_print(LOG_ERROR, u8"ReadThread, epoll_ctl fail:%d,errno:%d.", ret, errno);
-                    //close(msg.fd);
+                    // close(msg.fd);
                 }
             }
             else if (events[i].events & EPOLLERR || events[i].events & EPOLLHUP) //有异常发生
@@ -905,8 +903,7 @@ void *common::read_thread(void *arg)
                                                                    ++info->msg_count;
                                                                }
                                                            }
-                                                           return true;
-                                                       });
+                                                           return true; });
                     itor->second->on_add_msg(msg_t);
                 }
             }
