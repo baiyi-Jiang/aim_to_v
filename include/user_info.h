@@ -40,6 +40,7 @@ public:
     std::string get_sha256() { return std::string((char *)sha256, sizeof(sha256)); }
     size_t get_passwd() { return passwd; }
     uint32_t get_custom_length() { return custom_length; }
+    void set_user_guid(uint32_t guid) { user_guid = guid; }
     void set_icon_guid(uint32_t guid) { icon_guid = guid; }
     void set_reg_time(uint32_t time) { reg_time = time; }
     void set_last_login_time(uint32_t time) { last_login_time = time; }
