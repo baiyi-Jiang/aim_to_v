@@ -259,7 +259,8 @@ uint32_t NetInfo::on_acount_login(const uint8_t *data, uint32_t len, int32_t fd)
     if (!index)
         return index;
     std::string phone((const char *)login.phone, sizeof(login.phone));
-    uint16_t err_no = on_login(phone, login.passwd);
+    std::string sha256((const char *)login.sha256, sizeof(login.sha256));
+    uint16_t err_no = on_login(phone, sha256);
     if (err_no == ERROR_OK)
     {
         size_t phone_hash = std::hash<std::string>{}(phone);
@@ -565,7 +566,7 @@ int32_t NetInfo::send_msg(int32_t fd, uint8_t *data, uint32_t len)
     return nsend;
 }
 
-uint32_t NetInfo::on_login(const std::string& acount, size_t passwd)
+uint32_t NetInfo::on_login(const std::string& acount, const std::string& sha256)
 {
     uint32_t user_guid = 0;
 #ifdef USE_PHONE_TREE
@@ -592,6 +593,7 @@ uint32_t NetInfo::on_login(const std::string& acount, size_t passwd)
     }
     user_guid = itor->second;
 #endif
+    size_t passwd = std::hash<std::string>{}(sha256);
     auto user_itor = users_map.find(user_guid);
     if (user_itor != users_map.end())
     {

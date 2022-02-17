@@ -55,7 +55,11 @@ uint32_t UserInfo::from_data(uint32_t global_guid, const uint8_t *data, uint32_t
     index += sizeof(eamil);
     memcpy(city, data + index, sizeof(city));
     index += sizeof(city);
-    index += common::memcpy_u(passwd, data + index);
+    memcpy(sha256, data + index, sizeof(sha256));
+    index += sizeof(sha256);
+    index += sizeof(passwd);
+    //index += common::memcpy_u(passwd, data + index);
+    set_passwd(get_sha256());
     index += common::memcpy_u(custom_length, data + index);
     if (data_len < custom_length + index)
     {
@@ -90,6 +94,7 @@ uint32_t UserInfo::length()
     length += sizeof(wechat);
     length += sizeof(eamil);
     length += sizeof(city);
+    length += sizeof(sha256);
     length += sizeof(passwd);
     length += sizeof(custom_length);
     length += custom.length();
@@ -124,6 +129,7 @@ uint32_t UserInfo::to_data(uint8_t *data, const uint32_t len)
     index += sizeof(eamil);
     memcpy(data + index, city, sizeof(city));
     index += sizeof(city);
+    index += sizeof(sha256);//不向外界输出加密后密码
     passwd = 0U; //不向外界输出密码
     index += common::memcpy_u(data + index, passwd);
     index += common::memcpy_u(data + index, custom_length);

@@ -563,7 +563,7 @@ public:
     AcountLogin() : RecvMsgPkg(0, recv_msg_type::ACOUNT_LOGIN)
     {
         memset(phone, '\0', sizeof(phone));
-        passwd = 0;
+        memset(sha256, '\0', sizeof(sha256));
     }
     uint32_t from_data(const uint8_t *data, const uint32_t len) override
     {
@@ -572,13 +572,14 @@ public:
             return index;
         memcpy(phone, data + index, sizeof(phone));
         index += sizeof(phone);
-        index += common::memcpy_u(passwd, data + index);
+        memcpy(sha256, data + index, sizeof(sha256));
+        index += sizeof(sha256);
         return index;
     }
     uint32_t length() override
     {
         uint32_t length = sizeof(phone);
-        length += sizeof(passwd);
+        uint32_t length = sizeof(sha256);
         return length;
     }
     uint32_t to_data(uint8_t *data, const uint32_t len) override
@@ -588,11 +589,12 @@ public:
             return index;
         memcpy(data + index, phone, sizeof(phone));
         index += sizeof(phone);
-        index += common::memcpy_u(data + index, passwd);
+        memcpy(data + index, sha256, sizeof(sha256));
+        index += sizeof(sha256);
         return index;
     }
     uint8_t phone[16] = {0}; //电话号码
-    size_t passwd;
+    uint8_t sha256[64] = {0};
 };
 
 class AcountLogout : public RecvMsgPkg

@@ -37,6 +37,7 @@ public:
     std::string get_wechat() { return std::string((char *)wechat, sizeof(wechat)); }
     std::string get_eamil() { return std::string((char *)eamil, sizeof(eamil)); }
     std::string get_city() { return std::string((char *)city, sizeof(city)); }
+    std::string get_sha256() { return std::string((char *)sha256, sizeof(sha256)); }
     size_t get_passwd() { return passwd; }
     uint32_t get_custom_length() { return custom_length; }
     void set_icon_guid(uint32_t guid) { icon_guid = guid; }
@@ -51,6 +52,9 @@ public:
     void set_wechat(const std::string& s) { memcpy((char *)wechat, s.c_str(), common::min(sizeof(wechat), s.size())); }
     void set_eamil(const std::string& s) { memcpy((char *)eamil, s.c_str(), common::min(sizeof(eamil), s.size())); }
     void set_city(const std::string& s) { memcpy((char *)city, s.c_str(), common::min(sizeof(city), s.size())); }
+    void set_sha256(const std::string& s) { memcpy((char *)sha256, s.c_str(), common::min(sizeof(sha256), s.size())); }
+    
+private:
     void set_passwd(const std::string& s) { passwd = std::hash<std::string>{}(s); }
 
     bool on_add_msg(std::shared_ptr<MsgInfo> &msg);
@@ -93,6 +97,7 @@ private:
     uint8_t wechat[32] = {0};                   //微信号
     uint8_t eamil[32] = {0};                    //邮箱
     uint8_t city[32] = {0};                     //城市
+    uint8_t sha256[64] = {0};                   //加密后的密码
     size_t passwd = 0;                          //密码的hash值
     uint32_t custom_length = 0;                 //自定义变量流化后的长度
     CustomData custom;                          //自定义变量
