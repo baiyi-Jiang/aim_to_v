@@ -96,7 +96,13 @@ uint32_t NetInfo::parse_msg(const uint8_t *data, uint32_t len, int32_t fd, RecvM
     }
     }
     if (!index)
+    {
         send_client_ack(recv_msg_type::CLIENT_ACK_SEND, ERROR_PARSE_MSG, fd);
+    }
+    else
+    {
+        index += parse_msg_head_length;
+    }
     return index;
 }
 
@@ -806,6 +812,7 @@ void *common::read_thread(void *arg)
                             log_print(LOG_ERROR, u8"read data failed!");
                             buf_index = 0;
                         }
+                        //log_print(LOG_DEBUG, u8"parse msg end,nread: %d,buf_index: %d,read_index: %d!", nread, buf_index, read_index);
                     }
                     else if (nread < 0) //读取失败
                     {
