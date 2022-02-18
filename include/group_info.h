@@ -30,6 +30,8 @@ public:
     bool on_delete_msg(uint32_t operator_guid, uint32_t msg_num);
     bool clear_msg(uint32_t operator_guid);
     bool traverse_msgs(const std::function<bool(std::shared_ptr<MsgInfo> &)> &func);
+
+    void set_group_guid(uint32_t guid) { group_guid = guid; }
     void set_learder_guid(uint32_t guid) { learder_guid = guid; }
 
 private:

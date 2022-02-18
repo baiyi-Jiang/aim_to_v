@@ -5,9 +5,8 @@
 #include <memory>
 #include "log.h"
 
-uint32_t global_user_guid = 0;
-uint32_t global_group_guid = 0;
-uint32_t global_msg_num = 0;
+uint32_t global_user_guid = 1;
+uint32_t global_group_guid = 1;
 
 uint32_t NetInfo::parse_msg(const uint8_t *data, uint32_t len, int32_t fd, RecvMsgPkg &msg)
 {
@@ -135,7 +134,7 @@ uint32_t NetInfo::on_acount_add(const uint8_t *data, uint32_t len, int32_t fd)
     user_conn_map[user_guid] = fd;
     conn_user_map[fd] = user_guid;
     ++global_user_guid;
-    std::string phone = (*users_map[user_guid]).get_phone();
+    std::string phone = users_map[user_guid]->get_phone();
 #ifdef USE_PHONE_TREE
     phone_tree *ptr = phone_user_tree;
     for (auto a : phone)
@@ -157,6 +156,13 @@ uint32_t NetInfo::on_acount_add(const uint8_t *data, uint32_t len, int32_t fd)
     phone_hash_map[phone_hash] = user_guid;
     // log_print(LOG_DEBUG, u8"parse msg end,phone:%s, size:%d, phone_hash: %d,user_guid: %d!", phone.c_str(), phone.size(), phone_hash, user_guid);
 #endif
+    //添加到公共聊天室
+    if (users_map.size() == 1)
+    {
+        groups_map[0]->set_learder_guid(user_guid);
+    }
+    groups_map[0]->on_add_member(0, user_guid, users_map[user_guid]->get_icon_guid(), (uint8_t *)(users_map[user_guid]->get_name().c_str()));
+
     ClientAcountAddAck ack(user_guid);
     ack.err_no = ERROR_OK;
     ack.make_pkg((uint8_t *)send_buf, MAXBUFSIZE);
@@ -260,6 +266,7 @@ uint32_t NetInfo::on_acount_delete(const uint8_t *data, uint32_t len, int32_t fd
 
 uint32_t NetInfo::on_acount_login(const uint8_t *data, uint32_t len, int32_t fd)
 {
+    uint32_t user_guid = 0;
     AcountLogin login;
     uint32_t index = login.from_data(data, len);
     if (!index)
@@ -273,12 +280,17 @@ uint32_t NetInfo::on_acount_login(const uint8_t *data, uint32_t len, int32_t fd)
         auto user_itor = users_map.find(phone_hash_map[phone_hash]);
         if (user_itor != users_map.end())
         {
+            user_guid = user_itor->second->get_user_guid();
             user_itor->second->set_last_login_time(common::get_time_sec());
             user_itor->second->set_last_logout_time(user_itor->second->get_last_login_time());
             user_itor->second->on_set_online_status(user_status::STATUS_ON_LINE);
         }
     }
-    send_client_ack(recv_msg_type::CLIENT_ACOUNT_LOGIN_ACK, err_no, fd);
+
+    ClientAcountLoginAck ack(user_guid);
+    ack.err_no = err_no;
+    ack.make_pkg((uint8_t *)send_buf, MAXBUFSIZE);
+    send_msg(fd, (uint8_t *)send_buf, recv_msg_head_length + ack.get_sub_pkg_data_length());
     return index;
 }
 
@@ -323,7 +335,7 @@ uint32_t NetInfo::on_group_add(const uint8_t *data, uint32_t len, int32_t fd)
     auto operate_itor = users_map.find(info.get_learder_guid());
     if (operate_itor == users_map.end())
     {
-        send_client_ack(recv_msg_type::CLIENT_GROUP_ADD_ACK, ERROR_GROUP_EXIST, fd);
+        send_client_ack(recv_msg_type::CLIENT_GROUP_ADD_ACK, ERROR_GROUP_OPERATOR_NOT_EXIST, fd);
         return index;
     }
     if (!operate_itor->second->can_create_group())
@@ -601,6 +613,8 @@ uint32_t NetInfo::on_login(const std::string &acount, const std::string &sha256)
     auto user_itor = users_map.find(user_guid);
     if (user_itor != users_map.end())
     {
+        /*log_print(LOG_DEBUG, u8"sha256:%s, passwd: %d, u_sha256:%s, u_passwd: %d!", sha256.c_str(), passwd,
+                  user_itor->second->get_sha256().c_str(), user_itor->second->get_passwd());*/
         if (passwd == user_itor->second->get_passwd())
         {
             return ERROR_OK;
