@@ -96,6 +96,7 @@ uint32_t NetInfo::parse_msg(const uint8_t *data, uint32_t len, int32_t fd, RecvM
     }
     if (!index)
     {
+        log_print(LOG_ERROR, u8"Error pkg type:%d", msg.get_pkg_type());
         send_client_ack(recv_msg_type::CLIENT_ACK_SEND, ERROR_PARSE_MSG, fd);
     }
     else

@@ -131,7 +131,7 @@ uint32_t UserInfo::to_data(uint8_t *data, const uint32_t len)
     index += sizeof(city);
     memcpy(data + index, sha256, sizeof(sha256));
     index += sizeof(sha256);
-    uint32_t tmp_passwd = 0U; //不向外界输出密码
+    size_t tmp_passwd = 0U; //不向外界输出密码
     index += common::memcpy_u(data + index, tmp_passwd);
     index += common::memcpy_u(data + index, custom_length);
     index += custom.to_data(data + index, len - index);
