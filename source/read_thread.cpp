@@ -925,7 +925,7 @@ void *common::read_thread(void *arg)
                                                            auto conn_itor = net_info.user_conn_map.find(info->user_guid);
                                                            if (conn_itor != net_info.user_conn_map.end())
                                                            {
-                                                               if (conn_itor->first != info->user_guid)
+                                                               if (conn_itor->first != msg_t->send_guid)
                                                                {
                                                                    net_info.send_msg(conn_itor->second, (uint8_t *)send_buf, recv_msg_head_length + temp_recv_msg.get_sub_pkg_data_length());
                                                                }
