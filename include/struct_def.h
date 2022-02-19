@@ -319,6 +319,7 @@ public:
             return index;
         }
         msg.assign((char *)data + index, (size_t)msg_length);
+        index += msg_length;
         return index;
     }
     uint32_t length() override
