@@ -27,7 +27,7 @@ void *common::accept_thread(void *arg)
     sockaddr_in cliaddr;
     sockaddr_in svraddr;
 
-    uint16_t uListenPort = 5000;
+    uint16_t uListenPort = 12309;
     int32_t iBacklogSize = 5;
     int32_t iBackStoreSize = 1024;
 

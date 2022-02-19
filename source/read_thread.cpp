@@ -160,9 +160,9 @@ uint32_t NetInfo::on_acount_add(const uint8_t *data, uint32_t len, int32_t fd)
     //添加到公共聊天室
     if (users_map.size() == 1)
     {
-        groups_map[0]->set_learder_guid(user_guid);
+        groups_map[1]->set_learder_guid(user_guid);
     }
-    groups_map[0]->on_add_member(0, user_guid, users_map[user_guid]->get_icon_guid(), (uint8_t *)(users_map[user_guid]->get_name().c_str()));
+    groups_map[1]->on_add_member(0, user_guid, users_map[user_guid]->get_icon_guid(), (uint8_t *)(users_map[user_guid]->get_name().c_str()));
 
     ClientAcountAddAck ack(user_guid);
     ack.err_no = ERROR_OK;
@@ -823,7 +823,17 @@ void *common::read_thread(void *arg)
                             }
                             else
                             {
-                                break;
+                                if(net_info.users_map.find(temp_recv_msg.get_pkg_sender_guid()) == net_info.users_map.end() &&
+                                net_info.groups_map.find(temp_recv_msg.get_pkg_sender_guid()) == net_info.groups_map.end())
+                                {
+                                    log_print(LOG_ERROR, u8"pkg_sender_guid not exit!");
+                                    buf_index = MAXBUFSIZE;
+                                    nread = 0;
+                                }
+                                else
+                                {
+                                    break;   
+                                }
                             }
                         }
                         if (buf_index < read_index)

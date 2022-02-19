@@ -55,11 +55,11 @@ public:
 #endif
         recv_msg_head_length = temp_msg.head_length();
 
-        //添加公共聊天室
+        //添加公共聊天室 guid 1
         GroupInfo info;
-        info.set_group_guid(0);
+        info.set_group_guid(1);
         groups.emplace_back(info);
-        groups_map[0] = std::prev(groups.end());
+        groups_map[1] = std::prev(groups.end());
     }
     ~NetInfo()
     {

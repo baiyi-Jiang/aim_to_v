@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.2)
 project(aim_to_v)
-set(CMAKE_CXX_FLAGS "-std=c++11 -lpthread -Wall")
+set(CMAKE_CXX_FLAGS "-std=c++11 -g -lpthread -Wall")
 set(CMAKE_BUILD_TYPE "Release")
 include_directories("./include")
 #aux_source_directory(./source SRC_SOURCE_LIST)
