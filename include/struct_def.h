@@ -56,20 +56,20 @@ struct recv_msg_type
 {
     enum msg_type : uint16_t
     {
-        ACOUNT_ADD = 00,             //新增账号
-        ACOUNT_MODIFY = 01,          //修改账号
-        ACOUNT_DELETE = 02,          //删除账号
-        ACOUNT_LOGIN = 03,           //登录账号
-        ACOUNT_LOGOUT = 04,          //登出账号
-        ACOUNT_CAN_REG = 05,         //注册检查
-        GROUP_ADD = 30,              //新增群组
-        GROUP_MODIFY = 31,           //修改群组
-        GROUP_DELETE = 32,           //删除群组
-        USER_INFO_REQ = 60,          //请求联系人信息
-        GROUP_INFO_REQ = 61,         //请求群组信息
-        USER_INFO_BRIEF_REQ = 62,    //请求联系人简略信息
-        MSG_SEND = 90,               //发送消息
-        MSG_LIST_REQ = 91,           //请求聊天记录
+        ACOUNT_ADD = 00,            //新增账号
+        ACOUNT_MODIFY = 01,         //修改账号
+        ACOUNT_DELETE = 02,         //删除账号
+        ACOUNT_LOGIN = 03,          //登录账号
+        ACOUNT_LOGOUT = 04,         //登出账号
+        ACOUNT_CAN_REG = 05,        //注册检查
+        GROUP_ADD = 30,             //新增群组
+        GROUP_MODIFY = 31,          //修改群组
+        GROUP_DELETE = 32,          //删除群组
+        USER_INFO_REQ = 60,         //请求联系人信息
+        GROUP_INFO_REQ = 61,        //请求群组信息
+        USER_INFO_BRIEF_REQ = 62,   //请求联系人简略信息
+        MSG_SEND = 90,              //发送消息
+        MSG_LIST_REQ = 91,          //请求聊天记录
         SERVER_MSG_TYPE_MAX = 9999, //服务端消息类型限制
 
         CLIENT_ACOUNT_ADD_ACK = 10000,         //新增账号回包
@@ -318,7 +318,7 @@ public:
             index = 0;
             return index;
         }
-        msg.assign((char *)data, (size_t)msg_length);
+        msg.assign((char *)data + index, (size_t)msg_length);
         return index;
     }
     uint32_t length() override

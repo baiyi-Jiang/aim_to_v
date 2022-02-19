@@ -924,7 +924,7 @@ void *common::read_thread(void *arg)
                     }
                     itor->second->traverse_all_members([&](std::shared_ptr<group_member_info> &info) -> bool
                                                        {
-                                                           // log_print(LOG_DEBUG, u8"info->user_guid = %d!", info->user_guid);
+                                                           // log_print(LOG_DEBUG, u8"msg_t = %s!", msg_t->msg.c_str());
                                                            auto user_itor = net_info.users_map.find(info->user_guid);
                                                            if (user_itor == net_info.users_map.end())
                                                                return false;
