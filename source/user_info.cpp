@@ -166,6 +166,11 @@ bool UserInfo::on_add_msg(std::shared_ptr<MsgInfo> &msg)
     {
         msg_map[msg->send_guid] = new MSG_LIST;
         msg_map_limit[msg->send_guid] = 0;
+        msg->msg_num = 1;
+    }
+    else
+    {
+        msg->msg_num = (*msg_list_itor->second->rbegin())->msg_num + 1;
     }
     msg_map[msg->send_guid]->push_back(msg);
     ++msg_map_limit[msg->send_guid];
