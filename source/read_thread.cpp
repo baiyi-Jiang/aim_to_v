@@ -132,8 +132,6 @@ uint32_t NetInfo::on_acount_add(const uint8_t *data, uint32_t len, int32_t fd)
     user.on_set_online_status(user_status::STATUS_ON_LINE);
     users.emplace_back(user);
     users_map[user_guid] = std::prev(users.end());
-    user_conn_map[user_guid] = fd;
-    conn_user_map[fd] = user_guid;
     ++global_user_guid;
     std::string phone = users_map[user_guid]->get_phone();
 #ifdef USE_PHONE_TREE
@@ -288,6 +286,8 @@ uint32_t NetInfo::on_acount_login(const uint8_t *data, uint32_t len, int32_t fd)
         }
     }
 
+    user_conn_map[user_guid] = fd;
+    conn_user_map[fd] = user_guid;
     ClientAcountLoginAck ack(user_guid);
     ack.err_no = err_no;
     ack.make_pkg((uint8_t *)send_buf, MAXBUFSIZE);
@@ -312,6 +312,8 @@ uint32_t NetInfo::on_acount_logout(const uint8_t *data, uint32_t len, int32_t fd
         user_itor->second->on_set_online_status(user_status::STATUS_OFF_LINE);
         user_itor->second->set_last_logout_time(common::get_time_sec());
     }
+    conn_user_map.erase(user_conn_map[logout.user_guid]);
+    user_conn_map.erase(logout.user_guid);
     send_client_ack(recv_msg_type::CLIENT_ACOUNT_LOGOUT_ACK, ERROR_OK, fd);
     return index;
 }
@@ -540,17 +542,20 @@ uint32_t NetInfo::on_user_brief_info_req(const uint8_t *data, uint32_t len, int3
 
 uint32_t NetInfo::on_msg_send(uint32_t guid, const uint8_t *data, uint32_t len, int32_t fd)
 {
+    std::shared_ptr<MsgInfo> msg = std::make_shared<MsgInfo>();
+    uint32_t index = msg->from_data(data, len);
+    if (!index)
+        return index;
     auto conn_itor = conn_user_map.find(fd);
     if (conn_itor == conn_user_map.end() || conn_itor->second != guid)
     {
         send_client_ack(recv_msg_type::CLIENT_MSG_SEND_ACK, ERROR_USER_NOT_EXIST_OR_SEND_GUID, fd);
     }
-    std::shared_ptr<MsgInfo> msg = std::make_shared<MsgInfo>();
-    uint32_t index = msg->from_data(data, len);
-    if (!index)
-        return index;
-    msg_list.push_back(msg);
-    send_client_ack(recv_msg_type::CLIENT_MSG_SEND_ACK, ERROR_OK, fd);
+    else
+    {
+        msg_list.push_back(msg);
+        //send_client_ack(recv_msg_type::CLIENT_MSG_SEND_ACK, ERROR_OK, fd);
+    }
     return index;
 }
 
@@ -823,8 +828,8 @@ void *common::read_thread(void *arg)
                             }
                             else
                             {
-                                if(net_info.users_map.find(temp_recv_msg.get_pkg_sender_guid()) == net_info.users_map.end() &&
-                                net_info.groups_map.find(temp_recv_msg.get_pkg_sender_guid()) == net_info.groups_map.end())
+                                if (net_info.users_map.find(temp_recv_msg.get_pkg_sender_guid()) == net_info.users_map.end() &&
+                                    net_info.groups_map.find(temp_recv_msg.get_pkg_sender_guid()) == net_info.groups_map.end())
                                 {
                                     log_print(LOG_ERROR, u8"pkg_sender_guid not exit!");
                                     buf_index = MAXBUFSIZE;
@@ -832,7 +837,7 @@ void *common::read_thread(void *arg)
                                 }
                                 else
                                 {
-                                    break;   
+                                    break;
                                 }
                             }
                         }
@@ -893,12 +898,6 @@ void *common::read_thread(void *arg)
             std::shared_ptr<MsgInfo> &msg_t = net_info.msg_list.front();
             temp_recv_msg.set_pkg_sender_guid(msg_t->send_guid);
             temp_recv_msg.set_pkg_type(recv_msg_type::CLIENT_MSG_SEND);
-            if (!temp_recv_msg.set_sub_pkg_data_length(msg_t->to_data((uint8_t *)(send_buf + recv_msg_head_length), MAXBUFSIZE - recv_msg_head_length)) || !temp_recv_msg.to_head((uint8_t *)send_buf, MAXBUFSIZE))
-            {
-                log_print(LOG_ERROR, u8"封包失败!");
-                net_info.msg_list.pop_front();
-                continue;
-            }
             if (msg_t->msg_type == MsgInfo::MSG_TYPE_GROUP)
             {
                 auto itor = net_info.groups_map.find(msg_t->recv_guid);
@@ -916,8 +915,16 @@ void *common::read_thread(void *arg)
                             continue;
                         }
                     }
+                    itor->second->on_add_msg(msg_t);
+                    if (!temp_recv_msg.set_sub_pkg_data_length(msg_t->to_data((uint8_t *)(send_buf + recv_msg_head_length), MAXBUFSIZE - recv_msg_head_length)) || !temp_recv_msg.to_head((uint8_t *)send_buf, MAXBUFSIZE))
+                    {
+                        log_print(LOG_ERROR, u8"封包失败!");
+                        net_info.msg_list.pop_front();
+                        continue;
+                    }
                     itor->second->traverse_all_members([&](std::shared_ptr<group_member_info> &info) -> bool
                                                        {
+                                                           // log_print(LOG_DEBUG, u8"info->user_guid = %d!", info->user_guid);
                                                            auto user_itor = net_info.users_map.find(info->user_guid);
                                                            if (user_itor == net_info.users_map.end())
                                                                return false;
@@ -932,7 +939,6 @@ void *common::read_thread(void *arg)
                                                                net_info.send_msg(conn_itor->second, (uint8_t *)send_buf, recv_msg_head_length + temp_recv_msg.get_sub_pkg_data_length());
                                                            }
                                                            return true; });
-                    itor->second->on_add_msg(msg_t);
                 }
             }
             else if (msg_t->msg_type == MsgInfo::MSG_TYPE_USER)
@@ -949,7 +955,7 @@ void *common::read_thread(void *arg)
                 }
                 else
                 {
-                    //提示先添加好友
+                    // TODO 提示先添加好友
                     continue;
                 }
                 auto send_user_itor = net_info.users_map.find(msg_t->send_guid);
@@ -960,14 +966,20 @@ void *common::read_thread(void *arg)
                 }
                 if (send_user_itor->second->on_update_friend_active(msg_t->recv_guid))
                     send_user_itor->second->on_add_msg(msg_t);
+                if (!temp_recv_msg.set_sub_pkg_data_length(msg_t->to_data((uint8_t *)(send_buf + recv_msg_head_length), MAXBUFSIZE - recv_msg_head_length)) || !temp_recv_msg.to_head((uint8_t *)send_buf, MAXBUFSIZE))
+                {
+                    log_print(LOG_ERROR, u8"封包失败!");
+                    net_info.msg_list.pop_front();
+                    continue;
+                }
                 auto conn_itor = net_info.user_conn_map.find(msg_t->recv_guid);
                 if (conn_itor != net_info.user_conn_map.end())
                 {
-                    if (conn_itor->first != msg_t->send_guid)
-                    {
-                        net_info.send_msg(conn_itor->second, (uint8_t *)send_buf, recv_msg_head_length + temp_recv_msg.get_sub_pkg_data_length());
-                    }
+                    net_info.send_msg(conn_itor->second, (uint8_t *)send_buf, recv_msg_head_length + temp_recv_msg.get_sub_pkg_data_length());
                 }
+                auto conn_s_itor = net_info.user_conn_map.find(msg_t->send_guid);
+                if (conn_s_itor != net_info.user_conn_map.end() && msg_t->send_guid != msg_t->recv_guid)
+                    net_info.send_msg(conn_s_itor->second, (uint8_t *)send_buf, recv_msg_head_length + temp_recv_msg.get_sub_pkg_data_length());
             }
             else if (msg_t->msg_type == MsgInfo::MSG_TYPE_ALL)
             {
@@ -975,6 +987,12 @@ void *common::read_thread(void *arg)
                 {
                     if (it.first == msg_t->send_guid)
                     {
+                        net_info.msg_list.pop_front();
+                        continue;
+                    }
+                    if (!temp_recv_msg.set_sub_pkg_data_length(msg_t->to_data((uint8_t *)(send_buf + recv_msg_head_length), MAXBUFSIZE - recv_msg_head_length)) || !temp_recv_msg.to_head((uint8_t *)send_buf, MAXBUFSIZE))
+                    {
+                        log_print(LOG_ERROR, u8"封包失败!");
                         net_info.msg_list.pop_front();
                         continue;
                     }

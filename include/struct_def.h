@@ -70,7 +70,7 @@ struct recv_msg_type
         USER_INFO_BRIEF_REQ = 62,    //请求联系人简略信息
         MSG_SEND = 90,               //发送消息
         MSG_LIST_REQ = 91,           //请求聊天记录
-        SERVER_MSG_TYPE_MAX = 10000, //服务端消息类型限制
+        SERVER_MSG_TYPE_MAX = 9999, //服务端消息类型限制
 
         CLIENT_ACOUNT_ADD_ACK = 10000,         //新增账号回包
         CLIENT_ACOUNT_MODIFY_ACK = 10001,      //修改账号回包
@@ -87,7 +87,7 @@ struct recv_msg_type
         CLIENT_MSG_SEND_ACK = 10090,           //发送消息回包
         CLIENT_MSG_LIST_ACK = 10091,           //回复聊天记录
         CLIENT_MSG_SEND = 20090,               //发送消息
-        CLIENT_ACK_SEND = 20001,               //一般消息回包
+        CLIENT_ACK_SEND = 20091,               //一般消息回包
         RECV_MSG_TYPE_MAX
     };
 };

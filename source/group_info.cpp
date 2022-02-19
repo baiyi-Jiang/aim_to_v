@@ -278,11 +278,13 @@ bool GroupInfo::on_add_msg(std::shared_ptr<MsgInfo> &msg)
         return false;
     if(msg_list.empty())
     {
-        msg->msg_num = 1;
+        if(!msg->msg_num)
+            msg->msg_num = 1;
     }
     else
     {
-        msg->msg_num = (*msg_list.rbegin())->msg_num + 1;
+        if(!msg->msg_num)
+            msg->msg_num = (*msg_list.rbegin())->msg_num + 1;
     }
     msg_list.push_back(msg);
     ++msg_limit;
