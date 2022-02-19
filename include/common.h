@@ -100,6 +100,8 @@ namespace common
 
     std::string time_t2string(const time_t time_t_time);
 
+    std::string time_t2string_m_ms(const time_t time_t_time);
+
     //在指定路径读取文件名
     bool getFilename(const std::string &file_path, const std::string &file_suffix, std::vector<std::string> &tempvector, std::string &error_msg);
 

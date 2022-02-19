@@ -236,6 +236,23 @@ namespace common
         return strTime;
     }
 
+    std::string time_t2string_m_ms(const time_t time_t_time)
+    {
+        char szTime[100] = { '\0' };
+        struct tm* ptm = localtime(&time_t_time);
+        ptm->tm_year += 1900;
+        ptm->tm_mon += 1;
+        sprintf(szTime, "%02d/%02d %02d:%02d:%02d",
+            ptm->tm_mon,
+            ptm->tm_mday,
+            ptm->tm_hour,
+            ptm->tm_min,
+            ptm->tm_sec);
+
+        std::string strTime = szTime;
+        return strTime;
+    }
+
     int const MAX_STR_LEN = 200;
 
     //在指定路径读取文件名 file_suffix文件后缀名(不带.)
