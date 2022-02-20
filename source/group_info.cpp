@@ -33,8 +33,8 @@ uint32_t GroupInfo::from_data(uint32_t global_guid, const uint8_t *data, uint32_
     for (uint32_t i = 0; i < member_count; ++i)
     {
         std::shared_ptr<group_member_info> member_info = std::make_shared<group_member_info>();
-        index = member_info->from_data(data + index, data_len - index);
-        if (!index)
+        uint32_t temp_index = member_info->from_data(data + index, data_len - index);
+        if (!temp_index)
         {
             log_print(LOG_DEBUG, u8"group_member_info from_data() failed!");
             continue;
