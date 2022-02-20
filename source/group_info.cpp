@@ -1,5 +1,6 @@
 #include "group_info.h"
 #include "common.h"
+#include "log.h"
 uint32_t group_msgs_max_len = 100;
 
 GroupInfo::~GroupInfo()
@@ -25,12 +26,30 @@ uint32_t GroupInfo::from_data(uint32_t global_guid, const uint8_t *data, uint32_
     uint32_t info_length = info.length();
     if (member_count * info_length > data_len - index)
     {
+        log_print(LOG_DEBUG, u8"buffer not enough!");
         index = 0;
         return index;
     }
     for (uint32_t i = 0; i < member_count; ++i)
     {
-        info.from_data(data + index, data_len - index);
+        std::shared_ptr<group_member_info> member_info = std::make_shared<group_member_info>();
+        index = member_info->from_data(data + index, data_len - index);
+        if (!index)
+        {
+            log_print(LOG_DEBUG, u8"group_member_info from_data() failed!");
+            continue;
+        }
+        uint32_t user_guid = member_info->user_guid;
+        bool is_manager = false;
+        if (member_info->job == group_member_info::GROUP_JOB_LEADER || member_info->job == group_member_info::GROUP_JOB_MANAGER)
+        {
+            is_manager = true;
+        }
+        members_list.emplace_back(member_info);
+        if (is_manager)
+            managers_map[user_guid] = std::prev(members_list.end());
+        else
+            members_map[user_guid] = std::prev(members_list.end());
         index += info_length;
     }
     return index;
@@ -49,13 +68,21 @@ uint32_t GroupInfo::to_data(uint8_t *data, const uint32_t data_len)
     group_member_info info;
     if (member_count * info.length() > data_len - index)
     {
+        log_print(LOG_DEBUG, u8"buffer not enough!");
         index = 0;
         return index;
     }
-    //TODO:这种写法有风险，group_member_info内若有不定长的数据则会出错，有待改进
-    for (uint32_t i = 0; i < member_count; ++i)
+    uint32_t temp_count = 0;
+    auto begin = members_list.begin();
+    while (begin != members_list.end())
     {
-        index += info.to_data(data + index, data_len - index);
+        index += (*begin)->to_data(data + index, data_len - index);
+        ++temp_count;
+    }
+    if (temp_count != member_count)
+    {
+        log_print(LOG_DEBUG, u8"member_count is error!");
+        index = 0;
     }
     return index;
 }
@@ -107,14 +134,15 @@ bool GroupInfo::on_add_member(uint32_t operator_guid, uint32_t user_guid, uint32
     group_info->permissions = group_permission::SEND_TO_GROUP;
     group_info->job = group_member_info::GROUP_JOB_MEMBER;
     memcpy(group_info->name, user_name, sizeof(group_info->name));
-    members_list.push_back(group_info);
     if (operator_guid == 0 && user_guid == learder_guid)
     {
-        managers_map[user_guid] = std::prev(members_list.end());
         group_info->job = group_member_info::GROUP_JOB_LEADER;
+        members_list.emplace_back(group_info);
+        managers_map[user_guid] = std::prev(members_list.end());
         ++member_count;
         return true;
     }
+    members_list.emplace_back(group_info);
     members_map[user_guid] = std::prev(members_list.end());
     ++member_count;
     return true;
@@ -276,14 +304,14 @@ bool GroupInfo::on_add_msg(std::shared_ptr<MsgInfo> &msg)
         return false;
     if (group_guid != msg->recv_guid)
         return false;
-    if(msg_list.empty())
+    if (msg_list.empty())
     {
-        if(!msg->msg_num)
+        if (!msg->msg_num)
             msg->msg_num = 1;
     }
     else
     {
-        if(!msg->msg_num)
+        if (!msg->msg_num)
             msg->msg_num = (*msg_list.rbegin())->msg_num + 1;
     }
     msg_list.push_back(msg);

@@ -161,6 +161,24 @@ uint32_t NetInfo::on_acount_add(const uint8_t *data, uint32_t len, int32_t fd)
         groups_map[1]->set_learder_guid(user_guid);
     }
     groups_map[1]->on_add_member(0, user_guid, users_map[user_guid]->get_icon_guid(), (uint8_t *)(users_map[user_guid]->get_name().c_str()));
+    RecvMsgPkg tmp_msg(0, recv_msg_type::CLIENT_GROUP_INFO_ACK);
+    if (tmp_msg.set_sub_pkg_data_length(groups_map[1]->to_data((uint8_t *)send_buf + tmp_msg.head_length(), MAXBUFSIZE - tmp_msg.head_length())) && tmp_msg.to_head((uint8_t *)send_buf, MAXBUFSIZE))
+    {
+        groups_map[1]->traverse_all_members([&](std::shared_ptr<group_member_info> &info) -> bool
+                                            {
+                                                auto user_itor = users_map.find(info->user_guid);
+                                                if (user_itor == users_map.end())
+                                                {
+                                                    log_print(LOG_ERROR, u8"group member not exist!");
+                                                    return false;
+                                                }
+                                                auto conn_itor = user_conn_map.find(info->user_guid);
+                                                if (conn_itor != user_conn_map.end())
+                                                {
+                                                    send_msg(conn_itor->second, (uint8_t *)send_buf, tmp_msg.get_sub_pkg_data_length() + tmp_msg.head_length());
+                                                }
+                                                return true; });
+    }
 
     ClientAcountAddAck ack(user_guid);
     ack.err_no = ERROR_OK;
@@ -259,6 +277,28 @@ uint32_t NetInfo::on_acount_delete(const uint8_t *data, uint32_t len, int32_t fd
     }
     conn_user_map.erase(user_conn_map[ad.user_guid]);
     user_conn_map.erase(ad.user_guid);
+    //从公共聊天室删除
+    groups_map[1]->on_delete_manager(groups_map[1]->get_learder_guid(), ad.user_guid);
+    groups_map[1]->on_delete_member(groups_map[1]->get_learder_guid(), ad.user_guid);
+    RecvMsgPkg tmp_msg(0, recv_msg_type::CLIENT_GROUP_INFO_ACK);
+    if (tmp_msg.set_sub_pkg_data_length(groups_map[1]->to_data((uint8_t *)send_buf + tmp_msg.head_length(), MAXBUFSIZE - tmp_msg.head_length())) && tmp_msg.to_head((uint8_t *)send_buf, MAXBUFSIZE))
+    {
+        groups_map[1]->traverse_all_members([&](std::shared_ptr<group_member_info> &info) -> bool
+                                            {
+                                                auto user_itor = users_map.find(info->user_guid);
+                                                if (user_itor == users_map.end())
+                                                {
+                                                    log_print(LOG_ERROR, u8"group member not exist!");
+                                                    return false;
+                                                }
+                                                auto conn_itor = user_conn_map.find(info->user_guid);
+                                                if (conn_itor != user_conn_map.end())
+                                                {
+                                                    send_msg(fd, (uint8_t *)send_buf, tmp_msg.get_sub_pkg_data_length() + tmp_msg.head_length());
+                                                }
+                                                return true; });
+    }
+
     send_client_ack(recv_msg_type::CLIENT_ACOUNT_DELETE_ACK, ERROR_OK, fd);
     return index;
 }
@@ -408,7 +448,27 @@ uint32_t NetInfo::on_group_modify(const uint8_t *data, uint32_t len, int32_t fd)
         if (gm.operate_guid == 0 || gm.target_guid == 0)
             break;
         if (group_itor->second->on_add_member(gm.operate_guid, gm.target_guid, user_itor->second->get_icon_guid(), (uint8_t *)user_itor->second->get_name().c_str()))
+        {
             user_itor->second->on_join_group(gm.group_guid);
+            RecvMsgPkg tmp_msg(0, recv_msg_type::CLIENT_GROUP_INFO_ACK);
+            if (tmp_msg.set_sub_pkg_data_length(group_itor->second->to_data((uint8_t *)send_buf + tmp_msg.head_length(), MAXBUFSIZE - tmp_msg.head_length())) && tmp_msg.to_head((uint8_t *)send_buf, MAXBUFSIZE))
+            {
+                group_itor->second->traverse_all_members([&](std::shared_ptr<group_member_info> &info) -> bool
+                                                         {
+                                                            auto user_itor = users_map.find(info->user_guid);
+                                                            if (user_itor == users_map.end())
+                                                            {
+                                                                log_print(LOG_ERROR, u8"group member not exist!");
+                                                                return false;
+                                                            }
+                                                            auto conn_itor = user_conn_map.find(info->user_guid);
+                                                            if (conn_itor != user_conn_map.end())
+                                                            {
+                                                                send_msg(fd, (uint8_t *)send_buf, tmp_msg.get_sub_pkg_data_length() + tmp_msg.head_length());
+                                                            }
+                                                            return true; });
+            }
+        }
         break;
     }
     case GroupModify::MEMBER_DELETE:
@@ -554,7 +614,7 @@ uint32_t NetInfo::on_msg_send(uint32_t guid, const uint8_t *data, uint32_t len, 
     else
     {
         msg_list.push_back(msg);
-        //send_client_ack(recv_msg_type::CLIENT_MSG_SEND_ACK, ERROR_OK, fd);
+        // send_client_ack(recv_msg_type::CLIENT_MSG_SEND_ACK, ERROR_OK, fd);
     }
     return index;
 }
@@ -924,10 +984,12 @@ void *common::read_thread(void *arg)
                     }
                     itor->second->traverse_all_members([&](std::shared_ptr<group_member_info> &info) -> bool
                                                        {
-                                                           // log_print(LOG_DEBUG, u8"msg_t = %s!", msg_t->msg.c_str());
                                                            auto user_itor = net_info.users_map.find(info->user_guid);
                                                            if (user_itor == net_info.users_map.end())
+                                                           {
+                                                               log_print(LOG_ERROR, u8"group member not exist!");
                                                                return false;
+                                                           }
                                                            user_itor->second->on_update_group_active(msg_t->recv_guid);
                                                            auto conn_itor = net_info.user_conn_map.find(info->user_guid);
                                                            if (conn_itor != net_info.user_conn_map.end())
