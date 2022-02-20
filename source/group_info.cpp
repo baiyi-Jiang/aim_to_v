@@ -77,6 +77,7 @@ uint32_t GroupInfo::to_data(uint8_t *data, const uint32_t data_len)
     while (begin != members_list.end())
     {
         index += (*begin)->to_data(data + index, data_len - index);
+        ++begin;
         ++temp_count;
     }
     if (temp_count != member_count)
