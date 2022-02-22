@@ -2,6 +2,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include "instance.h"
+#include "common.h"
 
 enum log_level : uint8_t
 {
