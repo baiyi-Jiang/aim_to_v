@@ -879,6 +879,7 @@ public:
             }
             std::shared_ptr<MsgInfo> msg = std::make_shared<MsgInfo>();
             index += msg->from_data(data + index, len - index);
+            msg_list.push_back(msg);
             ++list_size;
         }
         return index;
