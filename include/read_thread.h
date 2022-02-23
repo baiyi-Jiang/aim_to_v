@@ -83,7 +83,7 @@ public:
     uint32_t on_group_info_req(const uint8_t *data, uint32_t len, int32_t fd);
     uint32_t on_user_brief_info_req(const uint8_t *data, uint32_t len, int32_t fd);
     uint32_t on_msg_send(uint32_t guid, const uint8_t *data, uint32_t len, int32_t fd);
-    uint32_t on_msg_list_req();
+    uint32_t on_msg_list_req(uint32_t guid, const uint8_t *data, uint32_t len, int32_t fd);
     int32_t send_msg(int32_t fd, uint8_t *data, uint32_t len);
     uint32_t on_login(const std::string &acount, const std::string &sha256);
     uint32_t on_phone_unique(std::string acount);

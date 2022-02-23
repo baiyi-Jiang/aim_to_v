@@ -6,6 +6,7 @@
 #include <string>
 #include <stdio.h>
 #include <stdint.h>
+#include <memory>
 #include "common.h"
 
 //管道消息结构
@@ -197,7 +198,6 @@ public:
         pkg_sender_guid = guid;
         pkg_type = type;
         sub_pkg_data_length = 0;
-        sub_pkg_data = nullptr;
     }
     RecvMsgPkg() = delete;
     RecvMsgPkg(const RecvMsgPkg &) = delete;
@@ -214,7 +214,6 @@ public:
         index += common::memcpy_u(sub_pkg_data_length, src_data + index);
         if (len - head_length() < sub_pkg_data_length)
             return index;
-        sub_pkg_data = (uint8_t *)(src_data + index);
         index += sub_pkg_data_length;
         return index;
     }
@@ -257,7 +256,6 @@ public:
         sub_pkg_data_length = len;
         return true;
     }
-    uint8_t *get_sub_pkg_data() { return sub_pkg_data; }
     virtual uint32_t from_data(const uint8_t *data, const uint32_t len)
     {
         Unused(data);
@@ -277,7 +275,6 @@ public:
     uint16_t pkg_type; // recv_msg_type:type
 private:
     uint32_t sub_pkg_data_length;
-    uint8_t *sub_pkg_data;
 };
 
 //消息存储结构
@@ -299,7 +296,7 @@ public:
         msg_length = 0;
         msg_num = 0;
         msg_type = 0;
-        keep1 = 0;
+        //keep1 = 0;
     }
     uint32_t from_data(const uint8_t *data, const uint32_t len) override
     {
@@ -312,7 +309,7 @@ public:
         index += common::memcpy_u(msg_length, data + index);
         index += common::memcpy_u(msg_num, data + index);
         msg_type = data[index++];
-        keep1 = data[index++];
+        //keep1 = data[index++];
         if (len - length() < msg_length)
         {
             index = 0;
@@ -330,7 +327,7 @@ public:
         len += sizeof(msg_length);
         len += sizeof(msg_num);
         len += sizeof(msg_type);
-        len += sizeof(keep1);
+        //len += sizeof(keep1);
         return len;
     }
     uint32_t to_data(uint8_t *data, const uint32_t len) override
@@ -344,7 +341,7 @@ public:
         index += common::memcpy_u(data + index, msg_length);
         index += common::memcpy_u(data + index, msg_num);
         index += common::memcpy_u(data + index, msg_type);
-        index += common::memcpy_u(data + index, keep1);
+        //index += common::memcpy_u(data + index, keep1);
         memcpy(data + index, msg.c_str(), msg.size());
         index += (uint32_t)msg.size();
         return index;
@@ -355,7 +352,7 @@ public:
     uint32_t msg_length; //消息的长度
     uint16_t msg_num;    //消息序号
     uint8_t msg_type;    //消息类型 0公共频道消息 1群组消息 2私人消息
-    uint8_t keep1;       //保留字段1
+    //uint8_t keep1;       //保留字段1
     std::string msg;     //消息
 };
 
@@ -471,8 +468,8 @@ public:
         target_guid = 0;
         opreadte_type = ModifyTypeMAX;
         permission = group_permission::CANT_SEND_MSG;
-        keep1 = 0;
-        keep2 = 0;
+        //keep1 = 0;
+        //keep2 = 0;
     }
     uint32_t from_data(const uint8_t *data, const uint32_t len) override
     {
@@ -484,8 +481,8 @@ public:
         index += common::memcpy_u(target_guid, data + index);
         index += common::memcpy_u(opreadte_type, data + index);
         index += common::memcpy_u(permission, data + index);
-        index += common::memcpy_u(keep1, data + index);
-        index += common::memcpy_u(keep2, data + index);
+        //index += common::memcpy_u(keep1, data + index);
+        //index += common::memcpy_u(keep2, data + index);
         return index;
     }
     uint32_t length() override
@@ -495,8 +492,8 @@ public:
         length += sizeof(target_guid);
         length += sizeof(opreadte_type);
         length += sizeof(permission);
-        length += sizeof(keep1);
-        length += sizeof(keep2);
+        //length += sizeof(keep1);
+        //length += sizeof(keep2);
         return length;
     }
     uint32_t to_data(uint8_t *data, const uint32_t len) override
@@ -509,8 +506,8 @@ public:
         index += common::memcpy_u(data + index, target_guid);
         index += common::memcpy_u(data + index, opreadte_type);
         index += common::memcpy_u(data + index, permission);
-        index += common::memcpy_u(data + index, keep1);
-        index += common::memcpy_u(data + index, keep2);
+        //index += common::memcpy_u(data + index, keep1);
+        //index += common::memcpy_u(data + index, keep2);
         return index;
     }
     uint32_t group_guid;
@@ -518,8 +515,8 @@ public:
     uint32_t target_guid;
     uint8_t opreadte_type; // ModifyType
     uint8_t permission;
-    uint8_t keep1;
-    uint8_t keep2;
+    //uint8_t keep1;
+    //uint8_t keep2;
 };
 
 class GroupDelete : public RecvMsgPkg
@@ -815,6 +812,116 @@ public:
     }
     uint16_t err_no;
     uint32_t user_guid;
+};
+
+class MsgListReq : public RecvMsgPkg
+{
+public:
+    MsgListReq() : RecvMsgPkg(0, recv_msg_type::MSG_LIST_REQ)
+    {
+        reg_guid = 0;
+        reg_type = 0;
+    }
+    uint32_t from_data(const uint8_t *data, const uint32_t len) override
+    {
+        uint32_t index = 0;
+        if (!data || len < length())
+            return index;
+        index += common::memcpy_u(reg_guid, data + index);
+        index += common::memcpy_u(reg_type, data + index);
+        return index;
+    }
+    uint32_t length() override
+    {
+        uint32_t length = sizeof(reg_guid);
+        length += sizeof(reg_type);
+        return length;
+    }
+    uint32_t to_data(uint8_t *data, const uint32_t len) override
+    {
+        uint32_t index = 0;
+        if (!data || len < length())
+            return index;
+        index += common::memcpy_u(data + index, reg_guid);
+        index += common::memcpy_u(data + index, reg_type);
+        return index;
+    }
+    uint32_t reg_guid;
+    uint8_t reg_type; //消息类型 0公共频道消息 1群组消息 2私人消息
+};
+
+class ClientMsgListAck : public RecvMsgPkg
+{
+public:
+    ClientMsgListAck() : RecvMsgPkg(0, recv_msg_type::CLIENT_MSG_LIST_ACK)
+    {
+        vec_size = 0;
+        list_size = 0;
+    }
+    uint32_t from_data(const uint8_t *data, const uint32_t len) override
+    {
+        uint32_t index = 0;
+        if (!data || len < sizeof(vec_size))
+            return index;
+        index += common::memcpy_u(vec_size, data + index);
+        vecs.resize(vec_size);
+        index += vec_size * sizeof(vec_size);
+        if(len < length())
+            return index;
+        uint32_t* arr_data = (uint32_t* )data;
+        vecs.assign(arr_data, arr_data + vec_size);
+        for(auto item : vecs)
+        {
+            if(len < index + item)
+            {
+                index = 0;
+                return index;
+            }
+            std::shared_ptr<MsgInfo> msg = std::make_shared<MsgInfo>();
+            index += msg->from_data(data + index, len - index);
+            ++list_size;
+        }
+        return index;
+    }
+    uint32_t length() override
+    {
+        uint32_t length = sizeof(vec_size);
+        length += sizeof(uint32_t) * common::max(vec_size, list_size);
+        return length;
+    }
+    uint32_t to_data(uint8_t *data, const uint32_t len) override
+    {
+        uint32_t index = 0;
+        if (!data || len < length())
+            return index;
+        index += common::memcpy_u(data + index, list_size);
+        vecs.resize(list_size);
+        uint32_t temp_index = index;
+        index += vecs.size() * sizeof(uint32_t);
+        auto begin = msg_list.begin();
+        auto end = msg_list.end();
+        while(begin != end)
+        {
+            uint32_t tmp_i = (*begin)->to_data(data + index, len - index);
+            vecs[vec_size++] = tmp_i;
+            index += tmp_i;
+            ++begin;
+        }
+        for(auto item : vecs)
+        {
+            temp_index += common::memcpy_u(data + temp_index, item);
+        }
+        return index;
+    }
+    void append_msg(const std::shared_ptr<MsgInfo>& msg)
+    {
+        msg_list.push_back(msg);
+        ++list_size;
+    }
+    uint32_t vec_size;
+    std::vector<uint32_t> vecs;
+    uint32_t list_size;
+    std::list<std::shared_ptr<MsgInfo>> msg_list;
 };
 
 //全局运行信息

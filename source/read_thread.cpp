@@ -14,7 +14,7 @@ uint32_t NetInfo::parse_msg(const uint8_t *data, uint32_t len, int32_t fd, RecvM
     uint32_t index = 0;
     if (msg.get_pkg_type() > recv_msg_type::SERVER_MSG_TYPE_MAX)
     {
-        log_print(LOG_ERROR, u8"Error, msg type error!");
+        log_print(LOG_ERROR, u8"Error, msg type: %d error!", msg.get_pkg_type());
         return index;
     }
     switch (static_cast<recv_msg_type::msg_type>(msg.get_pkg_type()))
@@ -86,6 +86,7 @@ uint32_t NetInfo::parse_msg(const uint8_t *data, uint32_t len, int32_t fd, RecvM
     }
     case recv_msg_type::MSG_LIST_REQ:
     {
+        index = on_msg_list_req(msg.get_pkg_sender_guid(), data + parse_msg_head_length, msg.get_sub_pkg_data_length(), fd);
         break;
     }
     default:
@@ -619,10 +620,48 @@ uint32_t NetInfo::on_msg_send(uint32_t guid, const uint8_t *data, uint32_t len, 
     return index;
 }
 
-uint32_t NetInfo::on_msg_list_req()
+uint32_t NetInfo::on_msg_list_req(uint32_t guid, const uint8_t *data, uint32_t len, int32_t fd)
 {
-    // TODO:待完善
-    return 0;
+    MsgListReq mlr;
+    uint32_t index = mlr.from_data(data, len);
+    if (!index)
+        return index;
+    ClientMsgListAck ack;
+    if(mlr.reg_type == 1)//群组
+    {
+        auto itor = groups_map.find(mlr.reg_guid);
+        if(itor != groups_map.end())
+        {
+            itor->second->traverse_msgs([&](std::shared_ptr<MsgInfo> info)->bool{
+                ack.append_msg(info);
+                return true;
+            });
+            ack.make_pkg((uint8_t *)send_buf, MAXBUFSIZE);
+            send_msg(fd, (uint8_t *)send_buf, recv_msg_head_length + ack.get_sub_pkg_data_length());
+        }
+        else
+        {
+            send_client_ack(recv_msg_type::CLIENT_ACK_SEND, ERROR_MSG_LIST_REQ, fd);
+        }
+    }
+    else if(mlr.reg_type == 2)//群组私人
+    {
+        auto itor = users_map.find(guid);
+        if(itor != users_map.end())
+        {
+            itor->second->traverse_list(mlr.reg_guid, [&](std::shared_ptr<MsgInfo> info)->bool{
+                ack.append_msg(info);
+                return true;
+            });
+            ack.make_pkg((uint8_t *)send_buf, MAXBUFSIZE);
+            send_msg(fd, (uint8_t *)send_buf, recv_msg_head_length + ack.get_sub_pkg_data_length());
+        }
+        else
+        {
+            send_client_ack(recv_msg_type::CLIENT_ACK_SEND, ERROR_MSG_LIST_REQ, fd);
+        }
+    }
+    return index;
 }
 
 int32_t NetInfo::send_msg(int32_t fd, uint8_t *data, uint32_t len)
