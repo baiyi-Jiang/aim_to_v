@@ -864,11 +864,11 @@ public:
         if (!data || len < sizeof(vec_size))
             return index;
         index += common::memcpy_u(vec_size, data + index);
+        uint32_t* arr_data = (uint32_t* )(data + index);
         vecs.resize(vec_size);
         index += vec_size * sizeof(vec_size);
         if(len < length())
             return index;
-        uint32_t* arr_data = (uint32_t* )data;
         vecs.assign(arr_data, arr_data + vec_size);
         for(auto item : vecs)
         {
@@ -897,7 +897,7 @@ public:
         index += common::memcpy_u(data + index, list_size);
         vecs.resize(list_size);
         uint32_t temp_index = index;
-        index += vecs.size() * sizeof(uint32_t);
+        index += list_size * sizeof(uint32_t);
         auto begin = msg_list.begin();
         auto end = msg_list.end();
         while(begin != end)
