@@ -1,6 +1,7 @@
 #include "common.h"
 #include "struct_def.h"
 #include "log.h"
+#include "read_config.h"
 
 common_info comm;
 
@@ -16,6 +17,10 @@ static void sig_pro(int32_t signum)
 bool init()
 {
     TheLogSystem::instance().set_print_log_level(LOG_DEBUG);
+    std::string exe_path = common::get_exe_dir();
+    exe_path += u8"config.ini";
+    ReadConfig cfg(exe_path);
+    log_print(LOG_INFO, u8"read config, test1:%s, test2:%s, test3:%s", cfg.read_config(u8"test1").c_str(), cfg.read_config(u8"test2").c_str(), cfg.read_config(u8"test3").c_str());
     return true;
 }
 

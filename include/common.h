@@ -118,4 +118,6 @@ namespace common
     }
 
     char *str_sha256(const char *str, long long length, char *sha256);
+
+    std::string get_exe_dir();
 }

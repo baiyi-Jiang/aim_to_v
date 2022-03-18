@@ -89,7 +89,8 @@ void LogSystem::log_print_v(log_level level, const char *file_name, int line_num
     }
     if (!fp_)
     {
-        fp_ = fopen((log_time_str_ + u8".log").c_str(), "wb+");
+        std::string log_path = common::get_exe_dir() + log_time_str_;
+        fp_ = fopen((log_path + u8".log").c_str(), "wb+");
         if (!fp_)
         {
             printf(u8"ERROR!!!,create log file failed!\n");
@@ -238,16 +239,16 @@ namespace common
 
     std::string time_t2string_m_ms(const time_t time_t_time)
     {
-        char szTime[100] = { '\0' };
-        struct tm* ptm = localtime(&time_t_time);
+        char szTime[100] = {'\0'};
+        struct tm *ptm = localtime(&time_t_time);
         ptm->tm_year += 1900;
         ptm->tm_mon += 1;
         sprintf(szTime, "%02d/%02d %02d:%02d:%02d",
-            ptm->tm_mon,
-            ptm->tm_mday,
-            ptm->tm_hour,
-            ptm->tm_min,
-            ptm->tm_sec);
+                ptm->tm_mon,
+                ptm->tm_mday,
+                ptm->tm_hour,
+                ptm->tm_min,
+                ptm->tm_sec);
 
         std::string strTime = szTime;
         return strTime;
@@ -414,5 +415,41 @@ namespace common
         free(pp - l);
         sprintf(sha256, "%08X%08X%08X%08X%08X%08X%08X%08X", H0, H1, H2, H3, H4, H5, H6, H7);
         return sha256;
+    }
+
+    std::string get_exe_dir()
+    {
+        std::string path;
+#ifndef WIN32
+        char abs_path[1024] = {0};
+        int cnt = readlink("/proc/self/exe", abs_path, 1024); //获取可执行程序的绝对路径
+        if (cnt < 0 || cnt >= 1024)
+        {
+            return path;
+        }
+
+        //最后一个'/' 后面是可执行程序名，去掉devel/lib/m100/exe，只保留前面部分路径
+        for (int i = cnt; i >= 0; --i)
+        {
+            if (abs_path[i] == '/')
+            {
+                abs_path[i + 1] = '\0';
+                break;
+            }
+        }
+        path = abs_path;
+#else
+        char abs_path[MAX_PATH]; // Full path
+        GetModuleFileName(NULL, abs_path, MAX_PATH);
+        path = abs_path; // Get full path of the file
+        auto pos = path.find_last_of('\\', path.length());
+        if (pos == std::string::npos)
+        {
+            path = u8"";
+            return path;
+        }
+        path = path.substr(0, pos + 1); // Return the directory without the file name
+#endif
+        return path;
     }
 }
